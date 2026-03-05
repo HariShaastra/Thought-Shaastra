@@ -1,0 +1,5 @@
+{
+  "name": "Thought Shaastra",
+  "description": "A digital sanctuary for capturing, organizing, and reflecting on your lifelong thoughts and intellectual journey.",
+  "requestFramePermissions": ["microphone"]
+}
