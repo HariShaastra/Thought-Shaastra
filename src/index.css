@@ -5,33 +5,53 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Cormorant Garamond", serif;
   
-  --color-thought-bg: #FDFCFB;
-  --color-thought-ink: #1A1A1A;
-  --color-thought-accent: #2D3E50;
-  
-  --color-dark-bg: #0F172A;
-  --color-dark-ink: #F8FAFC;
-  --color-dark-accent: #94A3B8;
+  --color-bg: #0D0B0A;
+  --color-surface: #1A1614;
+  --color-surface-hover: #26211E;
+  --color-ink: #E5D5C5;
+  --color-ink-muted: #A39284;
+  --color-accent: #C49B66;
+  --color-accent-hover: #D4B082;
+  --color-border: #2D2622;
 }
 
 @layer base {
   body {
-    @apply bg-[var(--color-thought-bg)] text-[var(--color-thought-ink)] font-sans antialiased transition-colors duration-300;
-  }
-  
-  .dark body {
-    @apply bg-[var(--color-dark-bg)] text-[var(--color-dark-ink)];
+    @apply bg-[var(--color-bg)] text-[var(--color-ink)] font-sans antialiased transition-colors duration-300 relative overflow-x-hidden;
   }
 
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(circle at 20% 30%, rgba(196, 155, 102, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(196, 155, 102, 0.03) 0%, transparent 50%);
+    animation: ambient 20s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    opacity: 0.02;
+    pointer-events: none;
+    z-index: -1;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3%3Ffilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/feTurbulence%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+  
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
   }
 }
 
-.glass {
-  @apply bg-white/70 backdrop-blur-md border border-white/20;
+@keyframes ambient {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(2%, 2%) scale(1.1); }
 }
 
-.dark .glass {
-  @apply bg-slate-900/70 border-slate-800/20;
+.glass {
+  @apply bg-[var(--color-surface)]/80 backdrop-blur-md border border-[var(--color-border)];
 }

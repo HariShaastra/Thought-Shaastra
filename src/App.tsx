@@ -36,7 +36,10 @@ import {
   Shield,
   Cloud,
   Smartphone,
-  Menu
+  Menu,
+  Feather,
+  Quote,
+  Sunrise
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isAfter, parseISO, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
@@ -145,27 +148,62 @@ const useVoiceRecorder = () => {
 // --- Components ---
 
 const Logo = () => (
-  <div className="flex items-center gap-3">
-    <div className="relative w-10 h-10 flex items-center justify-center">
+  <div className="flex items-center gap-3 sm:gap-6">
+    <div className="relative w-10 h-10 sm:w-16 sm:h-16 flex items-center justify-center shrink-0">
+      {/* Sacred Geometry Layers */}
+      {[0, 60, 120].map((rotation, i) => (
+        <motion.div 
+          key={rotation}
+          animate={{ 
+            rotate: [rotation, rotation + 360],
+            scale: [1, 1.1, 1],
+            opacity: [0.2, 0.4, 0.2]
+          }}
+          transition={{ 
+            rotate: { duration: 20 + i * 5, repeat: Infinity, ease: "linear" },
+            scale: { duration: 4, repeat: Infinity, ease: "easeInOut" },
+            opacity: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+          }}
+          className="absolute inset-0 border border-accent/40 rounded-[35%]"
+        />
+      ))}
+      
+      {/* Central Pulsing Core */}
+      <motion.div 
+        animate={{ 
+          scale: [1, 1.2, 1],
+          boxShadow: [
+            "0 0 0px rgba(196,155,102,0)",
+            "0 0 25px rgba(196,155,102,0.4)",
+            "0 0 0px rgba(196,155,102,0)"
+          ]
+        }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        className="relative w-5 h-5 sm:w-8 sm:h-8 bg-accent rounded-full flex items-center justify-center z-10"
+      >
+        <Feather size={12} className="text-bg sm:hidden" />
+        <Feather size={18} className="text-bg hidden sm:block" />
+      </motion.div>
+
+      {/* Orbiting particle */}
       <motion.div 
         animate={{ rotate: 360 }}
-        transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-        className="absolute inset-0 border border-dashed border-indigo-500/20 rounded-full"
-      />
-      <motion.div 
-        animate={{ scale: [1, 1.05, 1] }}
-        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-violet-700 dark:from-indigo-500 dark:to-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20"
+        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+        className="absolute inset-0 z-20"
       >
-        <BookOpen size={16} className="text-white" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1 h-1 sm:w-1.5 sm:h-1.5 bg-accent rounded-full blur-[1px]" />
       </motion.div>
     </div>
-    <div className="flex flex-col">
-      <h1 className="text-lg font-black tracking-tighter leading-none bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-        Thought
-      </h1>
-      <span className="text-[9px] font-serif italic text-indigo-500 dark:text-indigo-400 tracking-[0.3em] uppercase leading-none mt-1">
-        Shaastra
+    <div className="flex flex-col min-w-0">
+      <motion.h1 
+        animate={{ opacity: [0.8, 1, 0.8] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        className="text-lg sm:text-2xl font-black tracking-tight leading-none text-accent whitespace-nowrap overflow-hidden text-ellipsis"
+      >
+        Thought Shaastra
+      </motion.h1>
+      <span className="text-[8px] sm:text-[11px] font-sans font-bold tracking-[0.2em] sm:tracking-[0.3em] uppercase text-ink-muted mt-1 sm:mt-1.5 whitespace-nowrap overflow-hidden text-ellipsis">
+        Treasure your Thoughts
       </span>
     </div>
   </div>
@@ -178,17 +216,17 @@ const Button = ({
   ...props 
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'danger' }) => {
   const variants = {
-    primary: 'bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200',
-    secondary: 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:text-indigo-300',
-    outline: 'border border-slate-200 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-900',
-    ghost: 'hover:bg-slate-100 dark:hover:bg-slate-900',
-    danger: 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400'
+    primary: 'bg-accent text-[#0D0B0A] hover:bg-accent-hover shadow-lg shadow-accent/10',
+    secondary: 'bg-surface text-ink hover:bg-surface-hover border border-border',
+    outline: 'border border-border text-ink hover:bg-surface',
+    ghost: 'text-ink-muted hover:text-ink hover:bg-surface',
+    danger: 'bg-red-900/20 text-red-400 hover:bg-red-900/30'
   };
 
   return (
     <button 
       className={cn(
-        'px-4 py-2 rounded-lg font-medium transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50',
+        'px-4 py-2 rounded-xl font-bold transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50',
         variants[variant],
         className
       )}
@@ -202,7 +240,7 @@ const Button = ({
 const Input = ({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input 
     className={cn(
-      'w-full px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 dark:bg-slate-900 dark:border-slate-800 dark:focus:ring-slate-700',
+      'w-full px-4 py-3 rounded-xl border border-border bg-surface text-ink placeholder:text-ink-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all',
       className
     )}
     {...props}
@@ -212,7 +250,7 @@ const Input = ({ className, ...props }: React.InputHTMLAttributes<HTMLInputEleme
 const TextArea = ({ className, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) => (
   <textarea 
     className={cn(
-      'w-full px-4 py-2 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400 dark:bg-slate-900 dark:border-slate-800 dark:focus:ring-slate-700 min-h-[120px] resize-none',
+      'w-full px-4 py-3 rounded-xl border border-border bg-surface text-ink placeholder:text-ink-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/50 transition-all min-h-[120px] resize-none',
       className
     )}
     {...props}
@@ -220,7 +258,7 @@ const TextArea = ({ className, ...props }: React.TextareaHTMLAttributes<HTMLText
 );
 
 const Card = ({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 shadow-sm', className)} {...props}>
+  <div className={cn('bg-surface border border-border rounded-2xl p-6 shadow-xl', className)} {...props}>
     {children}
   </div>
 );
@@ -234,21 +272,21 @@ const Modal = ({ isOpen, onClose, title, children }: { isOpen: boolean; onClose:
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50"
+          className="fixed inset-0 bg-[#0D0B0A]/80 backdrop-blur-md z-50"
         />
         <motion.div 
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl shadow-2xl z-50 overflow-hidden"
+          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-surface border border-border rounded-3xl shadow-2xl z-50 overflow-hidden"
         >
-          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <h2 className="text-xl font-bold">{title}</h2>
-            <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+          <div className="p-6 border-b border-border flex items-center justify-between bg-surface/50">
+            <h2 className="text-xl font-bold text-ink">{title}</h2>
+            <button onClick={onClose} className="p-2 hover:bg-surface-hover text-ink-muted hover:text-ink rounded-full transition-colors">
               <X size={20} />
             </button>
           </div>
-          <div className="p-6 max-h-[80vh] overflow-y-auto">
+          <div className="p-6 max-h-[80vh] overflow-y-auto bg-surface">
             {children}
           </div>
         </motion.div>
@@ -277,17 +315,17 @@ const VoicePlayer = ({ audioData }: { audioData: string }) => {
   };
 
   return (
-    <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl flex items-center gap-4">
+    <div className="mt-6 p-4 bg-surface rounded-2xl flex items-center gap-6 border border-border">
       <button 
         onClick={togglePlay}
-        className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-600/20"
+        className="w-12 h-12 rounded-full bg-accent text-bg flex items-center justify-center shadow-lg shadow-accent/20 hover:scale-105 transition-transform"
       >
-        {isPlaying ? <Square size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}
+        {isPlaying ? <Square size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-1" />}
       </button>
-      <div className="flex-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-        {isPlaying && <motion.div animate={{ width: ['0%', '100%'] }} transition={{ duration: 5, repeat: Infinity }} className="h-full bg-indigo-500" />}
+      <div className="flex-1 h-1.5 bg-bg rounded-full overflow-hidden border border-border">
+        {isPlaying && <motion.div animate={{ width: ['0%', '100%'] }} transition={{ duration: 5, repeat: Infinity }} className="h-full bg-accent" />}
       </div>
-      <span className="text-[10px] font-mono text-slate-400">Voice Note</span>
+      <span className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">Voice Note</span>
     </div>
   );
 };
@@ -309,14 +347,12 @@ export default function App() {
   const [purposes, setPurposes] = useState<Purpose[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [stats, setStats] = useState<CategoryStat[]>([]);
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isWriting, setIsWriting] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   const [isBackupPromptOpen, setIsBackupPromptOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [navHistory, setNavHistory] = useState<string[]>(['home']);
   const [capsules, setCapsules] = useState<Thought[]>([]);
   const [activityData, setActivityData] = useState<{ date: string; count: number }[]>([]);
@@ -391,18 +427,7 @@ export default function App() {
       setIsWelcomeOpen(true);
       localStorage.setItem('has_visited', 'true');
     }
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setIsDarkMode(true);
-    }
   }, []);
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
 
   // Backup Prompt Logic
   useEffect(() => {
@@ -510,9 +535,15 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
-    setUser(null);
-    fetchData();
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      // Clear any guest data if necessary or just refresh
+      fetchData();
+    }
   };
 
   const filteredThoughts = useMemo(() => {
@@ -575,174 +606,80 @@ export default function App() {
   }, [thoughts]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-      {/* Sidebar / Desktop Nav */}
-      <aside className="fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 hidden lg:flex flex-col p-6 z-40">
-        <Logo />
-        <nav className="mt-12 flex-1 space-y-2">
-          {[
-            { id: 'home', icon: Clock, label: 'Timeline' },
-            { id: 'documents', icon: BookOpen, label: 'Documents' },
-            { id: 'categories', icon: Hash, label: 'Categories' },
-            { id: 'purpose', icon: Target, label: 'Principles' },
-            { id: 'questions', icon: HelpCircle, label: 'Questions' },
-            { id: 'capsule', icon: Lock, label: 'Capsules' },
-            { id: 'graph', icon: BarChart3, label: 'Insights' },
-            { id: 'book', icon: BookOpen, label: 'Archive' },
-            { id: 'guide', icon: Info, label: 'Guide' },
-            { id: 'settings', icon: Settings, label: 'Settings' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => changeTab(tab.id)}
-              className={cn(
-                'w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative',
-                activeTab === tab.id 
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
-                  : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-              )}
+    <div className="min-h-screen bg-bg text-ink transition-colors duration-300">
+      {/* Global Header */}
+      <header className="fixed top-0 left-0 right-0 h-20 bg-bg/80 backdrop-blur-xl border-b border-border flex items-center justify-between px-4 sm:px-6 lg:px-12 z-50">
+        <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+          {activeTab !== 'home' && (
+            <button 
+              onClick={() => setActiveTab('home')} 
+              className="flex items-center gap-2 text-ink-muted hover:text-accent transition-all group shrink-0"
             >
-              <tab.icon size={20} />
-              <span className="font-semibold">{tab.label}</span>
-              {tab.id === 'capsule' && unlockedCapsulesCount > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
-              )}
-            </button>
-          ))}
-        </nav>
-
-        <div className="mt-auto pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
-          <button 
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
-          >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            <span className="font-semibold">{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
-          </button>
-          {user ? (
-            <div className="flex items-center gap-3 px-2">
-              <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                <UserIcon size={20} />
+              <div className="p-1.5 sm:p-2 rounded-full group-hover:bg-surface transition-all">
+                <ArrowRight size={16} className="rotate-180 sm:hidden" />
+                <ArrowRight size={20} className="rotate-180 hidden sm:block" />
               </div>
-              <div className="flex-1 overflow-hidden">
-                <p className="text-sm font-bold truncate">{user.name || user.email}</p>
-                <button onClick={handleLogout} className="text-[10px] text-slate-400 hover:text-red-500 flex items-center gap-1">
-                  <LogOut size={10} /> Logout
-                </button>
-              </div>
-            </div>
-          ) : (
-            <Button variant="secondary" className="w-full" onClick={() => setIsAuthModalOpen(true)}>
-              <Cloud size={18} /> Backup Thoughts
-            </Button>
-          )}
-        </div>
-      </aside>
-
-      {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 z-40">
-        <div className="flex items-center gap-2">
-          {navHistory.length > 1 && (
-            <button onClick={goBack} className="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
-              <ArrowRight size={20} className="rotate-180" />
+              <span className="text-xs font-bold uppercase tracking-widest hidden sm:inline">Back</span>
             </button>
           )}
           <Logo />
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setIsDarkMode(!isDarkMode)}>
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </Button>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-slate-500">
-            <Menu size={24} />
-          </button>
+        
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <div className="hidden lg:flex flex-col items-end mr-4">
+            <span className="text-[10px] font-bold text-accent uppercase tracking-[0.2em]">Current Session</span>
+            <span className="text-xs font-serif italic text-ink-muted">{format(new Date(), 'MMMM do, yyyy')}</span>
+          </div>
+          
+          {user ? (
+            <div className="flex items-center gap-2 sm:gap-4 pl-2 sm:pl-4 border-l border-border">
+              <div className="flex flex-col items-end max-w-[80px] sm:max-w-[150px]">
+                <p className="text-[10px] sm:text-sm font-bold text-ink truncate w-full text-right">{user.name || user.email}</p>
+                <button onClick={handleLogout} className="text-[8px] sm:text-[10px] text-ink-muted hover:text-red-400 font-bold uppercase tracking-widest transition-colors">
+                  Logout
+                </button>
+              </div>
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-surface border border-border flex items-center justify-center text-accent shadow-lg">
+                <UserIcon size={16} className="sm:hidden" />
+                <UserIcon size={20} className="hidden sm:block" />
+              </div>
+            </div>
+          ) : (
+            <Button variant="primary" className="px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-base" onClick={() => setIsAuthModalOpen(true)}>
+              <Cloud size={14} className="sm:hidden" />
+              <Cloud size={18} className="hidden sm:block" />
+              <span className="hidden sm:inline">Backup</span>
+            </Button>
+          )}
         </div>
       </header>
 
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="lg:hidden fixed inset-0 top-16 bg-white dark:bg-slate-900 z-30 p-6"
-          >
-            <nav className="grid grid-cols-2 gap-4">
-              {[
-                { id: 'home', icon: Clock, label: 'Timeline' },
-                { id: 'documents', icon: BookOpen, label: 'Documents' },
-                { id: 'categories', icon: Hash, label: 'Categories' },
-                { id: 'purpose', icon: Target, label: 'Principles' },
-                { id: 'questions', icon: HelpCircle, label: 'Questions' },
-                { id: 'capsule', icon: Lock, label: 'Capsules' },
-                { id: 'graph', icon: BarChart3, label: 'Insights' },
-                { id: 'book', icon: BookOpen, label: 'Archive' },
-                { id: 'guide', icon: Info, label: 'Guide' },
-                { id: 'settings', icon: Settings, label: 'Settings' }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => { changeTab(tab.id); setIsMobileMenuOpen(false); }}
-                  className={cn(
-                    'flex flex-col items-center gap-2 p-4 rounded-2xl border transition-all',
-                    activeTab === tab.id 
-                      ? 'bg-indigo-50 border-indigo-200 text-indigo-600 dark:bg-indigo-900/20 dark:border-indigo-800' 
-                      : 'border-slate-100 dark:border-slate-800 text-slate-500'
-                  )}
-                >
-                  <tab.icon size={24} />
-                  <span className="text-xs font-bold">{tab.label}</span>
-                </button>
-              ))}
-            </nav>
-            <div className="mt-8">
-              {user ? (
-                <Button variant="danger" className="w-full" onClick={handleLogout}>Logout</Button>
-              ) : (
-                <Button variant="primary" className="w-full" onClick={() => { setIsAuthModalOpen(true); setIsMobileMenuOpen(false); }}>
-                  Sign In for Backup
-                </Button>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Main Content Area */}
-      <main className="lg:ml-64 pt-24 lg:pt-12 pb-32 px-4 lg:px-12 max-w-5xl mx-auto">
-        {/* Desktop Back Button */}
-        <div className="hidden lg:flex mb-6">
-          {navHistory.length > 1 && (
-            <button onClick={goBack} className="flex items-center gap-2 text-slate-400 hover:text-indigo-600 transition-colors font-bold text-sm">
-              <ArrowRight size={16} className="rotate-180" /> Back to Previous
-            </button>
-          )}
-        </div>
+      <main className="pt-24 pb-32 px-4 lg:px-12 max-w-5xl mx-auto">
         <AnimatePresence mode="wait">
           {activeTab === 'documents' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="documents" className="space-y-8">
               <div className="flex items-center justify-between mb-12">
                 <div>
-                  <h2 className="text-4xl font-black">Documents</h2>
-                  <p className="text-slate-500 font-serif italic text-xl">Long-form explorations of your mind</p>
+                  <h2 className="text-5xl font-black text-ink">Documents</h2>
+                  <p className="text-ink-muted font-serif italic text-xl">Long-form explorations of your mind</p>
                 </div>
-                <Button className="h-12 px-6 rounded-xl shadow-lg shadow-indigo-600/20" onClick={() => setIsCreateDocumentModalOpen(true)}>
+                <Button className="h-12 px-6 rounded-xl shadow-lg shadow-accent/20" onClick={() => setIsCreateDocumentModalOpen(true)}>
                   <Plus size={20} /> Create Document
                 </Button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {documents.map(doc => (
-                  <Card key={doc.id} className="group hover:border-indigo-500 transition-all cursor-pointer" onClick={() => {
+                  <Card key={doc.id} className="group hover:border-accent transition-all cursor-pointer p-8" onClick={() => {
                     fetch(`/api/documents/${doc.id}`).then(res => res.json()).then(data => {
                       setActiveDocument(data);
                       setIsDocumentEditorOpen(true);
                     });
                   }}>
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                        <BookOpen size={20} />
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="w-12 h-12 bg-surface rounded-2xl flex items-center justify-center text-accent border border-border">
+                        <BookOpen size={24} />
                       </div>
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={(e) => {
@@ -750,26 +687,26 @@ export default function App() {
                           if (confirm('Delete document?')) {
                             fetch(`/api/documents/${doc.id}`, { method: 'DELETE' }).then(() => fetchData());
                           }
-                        }} className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg">
-                          <Trash2 size={14} />
+                        }} className="p-2 text-ink-muted hover:text-red-500 rounded-lg">
+                          <Trash2 size={16} />
                         </button>
                       </div>
                     </div>
-                    <h3 className="text-xl font-bold mb-1">{doc.title}</h3>
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+                    <h3 className="text-2xl font-bold mb-2 text-ink">{doc.title}</h3>
+                    <p className="text-xs text-ink-muted font-bold uppercase tracking-widest">
                       Last edited {formatDate(doc.updated_at)}
                     </p>
-                    {doc.description && <p className="mt-4 text-slate-500 text-sm line-clamp-2 italic">"{doc.description}"</p>}
+                    {doc.description && <p className="mt-6 text-ink-muted text-sm line-clamp-2 italic leading-relaxed">"{doc.description}"</p>}
                   </Card>
                 ))}
                 {documents.length === 0 && (
-                  <div className="md:col-span-2 py-20 text-center space-y-4">
-                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto text-slate-300">
-                      <BookOpen size={40} />
+                  <div className="md:col-span-2 py-20 text-center space-y-6">
+                    <div className="w-24 h-24 bg-surface rounded-3xl flex items-center justify-center mx-auto text-border border border-border">
+                      <BookOpen size={48} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold">No documents yet</h3>
-                      <p className="text-slate-500">Start a long-form writing project to organize your thoughts.</p>
+                      <h3 className="text-2xl font-bold text-ink">No documents yet</h3>
+                      <p className="text-ink-muted">Start a long-form writing project to organize your thoughts.</p>
                     </div>
                   </div>
                 )}
@@ -780,32 +717,32 @@ export default function App() {
           {activeTab === 'categories' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="categories" className="space-y-8">
               <div className="text-center mb-12">
-                <h2 className="text-4xl font-black mb-4">Categories</h2>
-                <p className="text-slate-500 font-serif italic text-xl">The taxonomy of your mind</p>
+                <h2 className="text-5xl font-black mb-4 text-ink">Categories</h2>
+                <p className="text-ink-muted font-serif italic text-xl">The taxonomy of your mind</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {categories.map(category => {
                   const thoughtCount = thoughts.filter(t => t.category_id === category.id).length;
                   return (
-                    <Card key={category.id} className="group hover:border-indigo-500 transition-all cursor-pointer" onClick={() => {
+                    <Card key={category.id} className="group hover:border-accent transition-all cursor-pointer p-8" onClick={() => {
                       setSearchQuery(category.name);
                       changeTab('home');
                     }}>
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                          <Hash size={20} />
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="w-12 h-12 bg-surface rounded-2xl flex items-center justify-center text-accent border border-border">
+                          <Hash size={24} />
                         </div>
-                        <span className="text-2xl font-black text-slate-200 dark:text-slate-800">{thoughtCount}</span>
+                        <span className="text-3xl font-black text-border">{thoughtCount}</span>
                       </div>
-                      <h3 className="text-xl font-bold mb-1">{category.name}</h3>
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Reflections</p>
+                      <h3 className="text-2xl font-bold mb-1 text-ink">{category.name}</h3>
+                      <p className="text-xs text-ink-muted font-bold uppercase tracking-widest">Reflections</p>
                     </Card>
                   );
                 })}
-                <Card className="bg-slate-50 dark:bg-slate-800/50 border-dashed border-2 border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center p-8 text-center">
-                  <Plus size={32} className="text-slate-300 mb-4" />
-                  <h3 className="text-lg font-bold mb-4">New Category</h3>
+                <Card className="bg-surface/50 border-dashed border-2 border-border flex flex-col items-center justify-center p-8 text-center">
+                  <Plus size={32} className="text-border mb-4" />
+                  <h3 className="text-lg font-bold mb-4 text-ink">New Category</h3>
                   <div className="flex gap-2 w-full">
                     <Input id="new-category-name" placeholder="Name..." className="flex-1" />
                     <Button onClick={async () => {
@@ -828,119 +765,184 @@ export default function App() {
           )}
 
           {activeTab === 'home' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} key="home" className="space-y-8">
-              {/* Search Results for Documents */}
-              {searchQuery && filteredDocuments.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em]">Documents ({filteredDocuments.length})</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filteredDocuments.map(doc => (
-                      <Card key={doc.id} className="p-4 hover:border-indigo-500 transition-all cursor-pointer" onClick={() => {
-                        fetch(`/api/documents/${doc.id}`).then(res => res.json()).then(data => {
-                          setActiveDocument(data);
-                          setIsDocumentEditorOpen(true);
-                        });
-                      }}>
-                        <div className="flex items-center gap-3">
-                          <BookOpen size={16} className="text-indigo-500" />
-                          <h4 className="font-bold text-sm">{doc.title}</h4>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -20 }} 
+              key="home" 
+              className="space-y-16"
+            >
+              <div className="text-center space-y-6">
+                <h2 className="text-3xl sm:text-6xl lg:text-8xl font-black tracking-tighter text-ink break-words">
+                  Welcome to <span className="text-accent italic font-serif">Shaastra</span>
+                </h2>
+                <div className="max-w-4xl mx-auto">
+                  <p className="text-ink-muted text-xl lg:text-3xl font-serif italic break-words">
+                    "Your mind reflects the world, and the world reflects your mind..."
+                  </p>
                 </div>
-              )}
-
-              {/* Hero Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card className="bg-indigo-600 text-white border-none">
-                  <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest mb-1">Current Streak</p>
-                  <h3 className="text-4xl font-black">{streak} Days</h3>
-                  <p className="text-indigo-200 text-[10px] mt-2">Consistent reflection builds wisdom.</p>
-                </Card>
-                <Card className="flex flex-col justify-center">
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Total Thoughts</p>
-                  <h3 className="text-4xl font-black">{thoughts.length}</h3>
-                  <div className="mt-2 flex items-center gap-1 text-emerald-500 text-xs font-bold">
-                    <Sparkles size={12} /> {thoughts.filter(t => t.type === 'voice').length} Voice Notes
-                  </div>
-                </Card>
-                <Card className="flex flex-col justify-center">
-                  <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Wisdom Score</p>
-                  <h3 className="text-4xl font-black">{Math.round(thoughts.length * 1.5 + purposes.length * 5)}</h3>
-                  <p className="text-slate-400 text-[10px] mt-2">Based on depth of reflection.</p>
-                </Card>
               </div>
 
-              {/* Search & Write */}
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                  <Input 
-                    placeholder="Search your mind's archive..." 
-                    className="pl-12 h-14 rounded-2xl text-lg border-slate-200 dark:border-slate-800"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <Button className="h-14 px-8 rounded-2xl text-lg shadow-xl shadow-indigo-600/20" onClick={() => setIsWriting(true)}>
-                  <Plus size={24} /> Write Thought
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                  { id: 'timeline', icon: Clock, label: 'Timeline', desc: "See your thoughts in the order you wrote them. It's like a diary that grows with you every day.", color: 'from-amber-500/20' },
+                  { id: 'documents', icon: BookOpen, label: 'Documents', desc: "Write long essays, research notes, or life plans. Perfect for when a simple thought needs more space to grow.", color: 'from-blue-500/20' },
+                  { id: 'purpose', icon: Target, label: 'Principles', desc: "Define the rules you live by. Keep your core values and life purpose front and center to stay focused.", color: 'from-emerald-500/20' },
+                  { id: 'categories', icon: Hash, label: 'Categories', desc: "Organize your mind by grouping thoughts into topics like 'Work', 'Health', or 'Philosophy'.", color: 'from-purple-500/20' },
+                  { id: 'questions', icon: HelpCircle, label: 'Questions', desc: "Store the big questions that keep you curious. Revisit them whenever you need a moment of deep reflection.", color: 'from-rose-500/20' },
+                  { id: 'capsule', icon: Lock, label: 'Capsules', desc: "Write messages to your future self. Set a date, and they'll stay locked until the perfect moment arrives.", color: 'from-indigo-500/20' },
+                  { id: 'graph', icon: BarChart3, label: 'Insights', desc: "Discover patterns in how you think. See your most active days and which topics occupy your mind the most.", color: 'from-cyan-500/20' },
+                  { id: 'book', icon: History, label: 'Archive', desc: "A safe place for all your past reflections. Browse through your history and see how much you've evolved.", color: 'from-orange-500/20' },
+                ].map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => changeTab(item.id)}
+                    className="group relative flex flex-col p-8 rounded-3xl bg-surface border border-border hover:border-accent transition-all text-left overflow-hidden"
+                  >
+                    <div className={cn("absolute inset-0 bg-gradient-to-br to-transparent opacity-0 group-hover:opacity-100 transition-opacity", item.color)} />
+                    <div className="relative z-10">
+                      <div className="w-12 h-12 rounded-2xl bg-bg border border-border flex items-center justify-center text-accent mb-6 group-hover:scale-110 transition-transform">
+                        <item.icon size={24} />
+                      </div>
+                      <h3 className="text-xl font-bold text-ink mb-2">{item.label}</h3>
+                      <p className="text-sm text-ink-muted leading-relaxed">{item.desc}</p>
+                    </div>
+                    <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
+                      <ArrowRight size={20} className="text-accent" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Quick Action */}
+              <div className="flex justify-center pt-8">
+                <Button 
+                  onClick={() => setIsWriting(true)} 
+                  className="h-20 px-12 rounded-3xl text-xl font-black shadow-2xl shadow-accent/20 hover:scale-105 transition-all"
+                >
+                  <Plus size={28} /> Capture a Thought
                 </Button>
+              </div>
+
+              {/* Info Boxes Moved to Bottom */}
+              <div className="max-w-4xl mx-auto pt-16">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <motion.div whileHover={{ y: -5 }} className="p-8 rounded-[2rem] bg-surface/40 border border-border/40 backdrop-blur-sm flex items-center justify-center text-center break-words">
+                    <p className="text-ink-muted leading-relaxed text-lg">
+                      Thought Shaastra is your private digital sanctuary.
+                    </p>
+                  </motion.div>
+                  <motion.div whileHover={{ y: -5 }} className="p-8 rounded-[2rem] bg-surface/40 border border-border/40 backdrop-blur-sm flex items-center justify-center text-center break-words">
+                    <p className="text-ink-muted leading-relaxed text-lg">
+                      It's <span className="text-accent font-bold">100% free</span>, and we never take your data—<span className="text-ink font-bold">you own everything you write</span>.
+                    </p>
+                  </motion.div>
+                  <motion.div whileHover={{ y: -5 }} className="p-8 rounded-[2rem] bg-surface/40 border border-border/40 backdrop-blur-sm flex items-center justify-center text-center break-words">
+                    <p className="text-ink-muted leading-relaxed text-lg">
+                      Use this space to clear your mind, track your growth, and preserve your wisdom.
+                    </p>
+                  </motion.div>
+                  <motion.div whileHover={{ y: -5 }} className="p-8 rounded-[2rem] bg-surface/40 border border-border/40 backdrop-blur-sm flex items-center justify-center text-center break-words">
+                    <p className="text-ink-muted leading-relaxed text-lg">
+                      Sign in to safely back up your thoughts and access them anywhere, or simply start writing right now.
+                    </p>
+                  </motion.div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'timeline' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="timeline" className="space-y-8">
+              <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
+                <div>
+                  <h2 className="text-5xl font-black text-ink">Timeline</h2>
+                  <p className="text-ink-muted font-serif italic text-xl mt-2">The chronological flow of your mind</p>
+                </div>
+                <div className="flex gap-4 w-full md:w-auto">
+                  <div className="relative flex-1 md:w-64">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-muted" size={18} />
+                    <Input 
+                      placeholder="Search timeline..." 
+                      className="pl-12 py-2"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={() => setIsWriting(true)}>
+                    <Plus size={20} /> Write
+                  </Button>
+                </div>
+              </div>
+
+              {/* Stats Bar */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="p-4 flex flex-col items-center justify-center text-center">
+                  <span className="text-accent font-black text-2xl">{streak}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">Day Streak</span>
+                </Card>
+                <Card className="p-4 flex flex-col items-center justify-center text-center">
+                  <span className="text-accent font-black text-2xl">{thoughts.length}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">Total Thoughts</span>
+                </Card>
+                <Card className="p-4 flex flex-col items-center justify-center text-center">
+                  <span className="text-accent font-black text-2xl">{thoughts.filter(t => t.type === 'voice').length}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">Voice Notes</span>
+                </Card>
+                <Card className="p-4 flex flex-col items-center justify-center text-center">
+                  <span className="text-accent font-black text-2xl">{Math.round(thoughts.length * 1.5 + purposes.length * 5)}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">Wisdom Score</span>
+                </Card>
               </div>
 
               {/* Thought of the Day */}
               {thoughtOfTheDay && !searchQuery && (
-                <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-                  <Card className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-900/10 dark:to-violet-900/10 border-indigo-100 dark:border-indigo-800/30 p-10 text-center relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                      <Sparkles size={120} />
-                    </div>
-                    <Sparkles className="mx-auto mb-6 text-amber-500" size={32} />
-                    <h3 className="text-xs font-bold text-indigo-400 uppercase tracking-[0.3em] mb-8">Thought of the Day</h3>
-                    <p className="text-3xl font-serif leading-relaxed text-slate-800 dark:text-slate-200 italic">
-                      "{thoughtOfTheDay.text}"
-                    </p>
-                    <div className="mt-10 flex items-center justify-center gap-4 text-xs text-slate-400">
-                      <span>{formatDate(thoughtOfTheDay.created_at)}</span>
-                      <div className="w-1 h-1 rounded-full bg-slate-300" />
-                      <span>{thoughtOfTheDay.category_name || 'Uncategorized'}</span>
-                    </div>
-                  </Card>
-                </motion.div>
+                <Card className="bg-accent/5 border-accent/20 p-10 text-center relative overflow-hidden">
+                  <Quote className="mx-auto mb-6 text-accent/40" size={32} />
+                  <h3 className="text-[10px] font-bold text-accent uppercase tracking-[0.3em] mb-8">Thought of the Day</h3>
+                  <p className="text-3xl font-serif leading-relaxed text-ink italic">
+                    "{thoughtOfTheDay.text}"
+                  </p>
+                  <div className="mt-10 flex items-center justify-center gap-4 text-[10px] font-bold text-ink-muted uppercase tracking-widest">
+                    <span>{formatDate(thoughtOfTheDay.created_at)}</span>
+                    <div className="w-1 h-1 rounded-full bg-border" />
+                    <span>{thoughtOfTheDay.category_name || 'Uncategorized'}</span>
+                  </div>
+                </Card>
               )}
 
-              {/* Timeline */}
+              {/* Timeline List */}
               <div className="space-y-12 pt-8">
                 {(Object.entries(groupedThoughts) as [string, Thought[]][]).map(([monthYear, monthThoughts]) => (
                   <div key={monthYear} className="relative">
-                    <div className="sticky top-20 lg:top-4 z-10 py-2 bg-slate-50/80 dark:bg-slate-950/80 backdrop-blur-sm">
-                      <h2 className="text-sm font-black text-slate-400 uppercase tracking-[0.4em] flex items-center gap-4">
+                    <div className="sticky top-20 z-10 py-4 bg-bg/80 backdrop-blur-sm">
+                      <h2 className="text-sm font-black text-ink-muted uppercase tracking-[0.4em] flex items-center gap-4">
                         {monthYear}
-                        <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+                        <div className="h-px flex-1 bg-border" />
                       </h2>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                       {monthThoughts.map(thought => (
                         <motion.div key={thought.id} layoutId={`thought-${thought.id}`}>
-                          <Card className="group hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-500 border-slate-200/50 dark:border-slate-800/50">
+                          <Card className="group hover:border-accent transition-all duration-500">
                             <div className="flex justify-between items-start mb-4">
                               <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 bg-surface text-accent rounded-lg border border-border">
                                   {thought.category_name || 'General'}
                                 </span>
-                                <span className="text-[10px] text-slate-400 font-medium">{formatTime(thought.created_at)}</span>
+                                <span className="text-[10px] text-ink-muted font-bold uppercase tracking-widest">{formatTime(thought.created_at)}</span>
                               </div>
                               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => { setEditingThought(thought); setIsWriting(true); }} className="p-1.5 text-slate-400 hover:text-indigo-500 rounded-lg">
+                                <button onClick={() => { setEditingThought(thought); setIsWriting(true); }} className="p-1.5 text-ink-muted hover:text-accent rounded-lg">
                                   <Edit3 size={14} />
                                 </button>
-                                <button onClick={() => { navigator.clipboard.writeText(thought.text); alert('Copied'); }} className="p-1.5 text-slate-400 hover:text-indigo-500 rounded-lg">
+                                <button onClick={() => { navigator.clipboard.writeText(thought.text); alert('Copied'); }} className="p-1.5 text-ink-muted hover:text-accent rounded-lg">
                                   <Share2 size={14} />
                                 </button>
                               </div>
                             </div>
-                            {thought.title && <h4 className="text-lg font-bold mb-2">{thought.title}</h4>}
-                            <p className="text-lg font-serif leading-relaxed text-slate-700 dark:text-slate-300">
+                            {thought.title && <h4 className="text-lg font-bold mb-2 text-ink break-words">{thought.title}</h4>}
+                            <p className="text-lg font-serif leading-relaxed text-ink/90 break-words">
                               {thought.text}
                             </p>
                             {thought.type === 'voice' && thought.audio_data && (
@@ -949,23 +951,9 @@ export default function App() {
                             {thought.tags && (
                               <div className="mt-6 flex flex-wrap gap-2">
                                 {(thought.tags as string).split(',').map(tag => (
-                                  <span key={tag} className="text-[10px] font-bold text-indigo-500/60 dark:text-indigo-400/60 uppercase tracking-widest">#{tag.trim()}</span>
+                                  <span key={tag} className="text-[10px] font-bold text-accent/60 uppercase tracking-widest">#{tag.trim()}</span>
                                 ))}
                               </div>
-                            )}
-                            {thought.parent_id && (
-                              <button 
-                                onClick={() => {
-                                  const parent = thoughts.find(p => p.id === thought.parent_id);
-                                  if (parent) {
-                                    setEditingThought(parent);
-                                    setIsWriting(true);
-                                  }
-                                }}
-                                className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 hover:text-indigo-600 uppercase tracking-widest mt-4"
-                              >
-                                <LinkIcon size={12} /> Linked to Thought
-                              </button>
                             )}
                           </Card>
                         </motion.div>
@@ -980,52 +968,52 @@ export default function App() {
           {activeTab === 'guide' && (
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} key="guide" className="max-w-3xl mx-auto space-y-12">
               <div className="text-center">
-                <h2 className="text-4xl font-black mb-4">How to use Thought Shaastra</h2>
-                <p className="text-slate-500 text-xl font-serif italic">A guide to your digital sanctuary</p>
+                <h2 className="text-5xl font-black mb-4 text-ink">How to use Shaastra</h2>
+                <p className="text-ink-muted text-xl font-serif italic">A guide to your digital sanctuary</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="p-8">
-                  <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-6">
+                  <div className="w-12 h-12 bg-surface rounded-2xl flex items-center justify-center text-accent border border-border mb-6">
                     <Edit3 size={24} />
                   </div>
-                  <h3 className="text-xl font-bold mb-3">Capture Thoughts</h3>
-                  <p className="text-slate-500 leading-relaxed">
+                  <h3 className="text-xl font-bold mb-3 text-ink">Capture Thoughts</h3>
+                  <p className="text-ink-muted leading-relaxed">
                     Write down anything that comes to mind. Use the voice feature if you're on the move. Categorize them to keep your mind organized.
                   </p>
                 </Card>
                 <Card className="p-8">
-                  <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 rounded-2xl flex items-center justify-center text-amber-600 dark:text-amber-400 mb-6">
+                  <div className="w-12 h-12 bg-surface rounded-2xl flex items-center justify-center text-accent border border-border mb-6">
                     <Lock size={24} />
                   </div>
-                  <h3 className="text-xl font-bold mb-3">Time Capsules</h3>
-                  <p className="text-slate-500 leading-relaxed">
+                  <h3 className="text-xl font-bold mb-3 text-ink">Time Capsules</h3>
+                  <p className="text-ink-muted leading-relaxed">
                     Write a message to your future self and set an unlock date. The thought will remain sealed until that specific moment in time.
                   </p>
                 </Card>
                 <Card className="p-8">
-                  <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-6">
+                  <div className="w-12 h-12 bg-surface rounded-2xl flex items-center justify-center text-accent border border-border mb-6">
                     <Target size={24} />
                   </div>
-                  <h3 className="text-xl font-bold mb-3">Principles & Questions</h3>
-                  <p className="text-slate-500 leading-relaxed">
+                  <h3 className="text-xl font-bold mb-3 text-ink">Principles & Questions</h3>
+                  <p className="text-ink-muted leading-relaxed">
                     Define your core values in the Principles section. Keep track of the big questions you're currently exploring in the Questions tab.
                   </p>
                 </Card>
                 <Card className="p-8">
-                  <div className="w-12 h-12 bg-violet-100 dark:bg-violet-900/50 rounded-2xl flex items-center justify-center text-violet-600 dark:text-violet-400 mb-6">
+                  <div className="w-12 h-12 bg-surface rounded-2xl flex items-center justify-center text-accent border border-border mb-6">
                     <Cloud size={24} />
                   </div>
-                  <h3 className="text-xl font-bold mb-3">Optional Backup</h3>
-                  <p className="text-slate-500 leading-relaxed">
+                  <h3 className="text-xl font-bold mb-3 text-ink">Optional Backup</h3>
+                  <p className="text-ink-muted leading-relaxed">
                     Your thoughts are stored locally by default. Create an account to safely back them up to our secure cloud and sync across all your devices.
                   </p>
                 </Card>
               </div>
 
-              <Card className="p-10 bg-slate-900 text-white border-none text-center">
-                <h3 className="text-2xl font-bold mb-4">Philosophy of Thought Shaastra</h3>
-                <p className="text-slate-400 font-serif italic text-lg leading-relaxed max-w-xl mx-auto">
+              <Card className="p-10 bg-surface border-accent/20 text-center">
+                <h3 className="text-2xl font-bold mb-4 text-ink">Philosophy of Thought Shaastra</h3>
+                <p className="text-ink-muted font-serif italic text-lg leading-relaxed max-w-xl mx-auto">
                   "This is not a social network. It is a personal sanctuary. No likes, no comments, no distractions. Just you and your thoughts, preserved forever."
                 </p>
               </Card>
@@ -1034,13 +1022,13 @@ export default function App() {
 
           {activeTab === 'settings' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="settings" className="max-w-2xl mx-auto space-y-8">
-              <h2 className="text-3xl font-black">Account Settings</h2>
+              <h2 className="text-5xl font-black text-ink">Settings</h2>
               
-              <Card className="space-y-6">
+              <Card className="space-y-6 p-8">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-bold">Backup Status</h3>
-                    <p className="text-xs text-slate-500">{user ? 'Your thoughts are safely backed up to the cloud.' : 'Thoughts are currently stored locally on this device.'}</p>
+                    <h3 className="font-bold text-ink">Backup Status</h3>
+                    <p className="text-xs text-ink-muted">{user ? 'Your thoughts are safely backed up to the cloud.' : 'Thoughts are currently stored locally on this device.'}</p>
                   </div>
                   {user ? (
                     <div className="flex items-center gap-2 text-emerald-500 font-bold text-sm">
@@ -1051,12 +1039,12 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="h-px bg-slate-100 dark:bg-slate-800" />
+                <div className="h-px bg-border" />
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-bold">Export Data</h3>
-                    <p className="text-xs text-slate-500">Download your entire thought archive.</p>
+                    <h3 className="font-bold text-ink">Export Data</h3>
+                    <p className="text-xs text-ink-muted">Download your entire thought archive.</p>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => {
@@ -1083,16 +1071,16 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="h-px bg-slate-100 dark:bg-slate-800" />
+                <div className="h-px bg-border" />
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-bold">Theme</h3>
-                    <p className="text-xs text-slate-500">Switch between light and dark mode.</p>
+                    <h3 className="font-bold text-ink">Theme</h3>
+                    <p className="text-xs text-ink-muted">Shaastra uses a warm, deep dark theme designed for focus.</p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => setIsDarkMode(!isDarkMode)}>
-                    {isDarkMode ? <Sun size={16} /> : <Moon size={16} />} {isDarkMode ? 'Light' : 'Dark'}
-                  </Button>
+                  <div className="px-4 py-2 bg-surface border border-border rounded-xl text-accent text-xs font-bold uppercase tracking-widest">
+                    Warm Dark
+                  </div>
                 </div>
 
                 {user && (
@@ -1124,10 +1112,10 @@ export default function App() {
           {activeTab === 'capsule' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="capsule" className="space-y-8">
               <div className="text-center mb-12">
-                <h2 className="text-4xl font-black mb-4">Time Capsules</h2>
-                <p className="text-slate-500 font-serif italic text-xl">Messages to your future self</p>
+                <h2 className="text-5xl font-black mb-4 text-ink">Time Capsules</h2>
+                <p className="text-ink-muted font-serif italic text-xl">Messages to your future self</p>
                 {unlockedCapsulesCount > 0 && (
-                  <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full text-sm font-bold animate-bounce">
+                  <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent/20 text-accent rounded-full text-sm font-bold animate-bounce">
                     <Sparkles size={16} /> {unlockedCapsulesCount} Capsules Unlocked!
                   </div>
                 )}
@@ -1137,21 +1125,21 @@ export default function App() {
                 {thoughts.filter(t => t.unlock_at).map(capsule => {
                   const isLocked = isAfter(parseISO(capsule.unlock_at!), new Date());
                   return (
-                    <Card key={capsule.id} className={cn("relative overflow-hidden group", isLocked ? "opacity-75 grayscale" : "border-indigo-200")}>
+                    <Card key={capsule.id} className={cn("relative overflow-hidden group", isLocked ? "opacity-75 grayscale" : "border-accent/30")}>
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-2">
-                          {isLocked ? <Lock size={16} className="text-slate-400" /> : <Unlock size={16} className="text-indigo-500" />}
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                          {isLocked ? <Lock size={16} className="text-ink-muted" /> : <Unlock size={16} className="text-accent" />}
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">
                             {isLocked ? `Unlocks ${formatDate(capsule.unlock_at!)}` : `Unlocked ${formatDate(capsule.unlock_at!)}`}
                           </span>
                         </div>
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => { setEditingThought(capsule); setIsWriting(true); }} className="p-1.5 text-slate-400 hover:text-indigo-500 rounded-lg">
+                          <button onClick={() => { setEditingThought(capsule); setIsWriting(true); }} className="p-1.5 text-ink-muted hover:text-accent rounded-lg">
                             <Edit3 size={14} />
                           </button>
                         </div>
                       </div>
-                      <p className={cn("text-lg font-serif leading-relaxed", isLocked ? "blur-sm select-none" : "text-slate-700 dark:text-slate-300")}>
+                      <p className={cn("text-lg font-serif leading-relaxed", isLocked ? "blur-sm select-none" : "text-ink")}>
                         {isLocked ? "This thought is sealed in time. It will be revealed when the moment is right." : capsule.text}
                       </p>
                       {!isLocked && capsule.audio_data && <VoicePlayer audioData={capsule.audio_data} />}
@@ -1164,7 +1152,7 @@ export default function App() {
                               setIsWriting(true);
                             }
                           }}
-                          className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 hover:text-indigo-600 uppercase tracking-widest mt-4"
+                          className="flex items-center gap-1 text-[10px] font-bold text-accent hover:text-accent/80 uppercase tracking-widest mt-4"
                         >
                           <LinkIcon size={12} /> Linked to Thought
                         </button>
@@ -1172,10 +1160,10 @@ export default function App() {
                     </Card>
                   );
                 })}
-                <Card className="bg-slate-50 dark:bg-slate-800/50 border-dashed border-2 border-slate-200 dark:border-slate-700 flex flex-col items-center justify-center p-12 text-center">
-                  <Lock size={48} className="text-slate-300 mb-4" />
-                  <h3 className="text-xl font-bold mb-2">Create a Time Capsule</h3>
-                  <p className="text-slate-500 text-sm mb-6">Seal a thought today to be opened in the future.</p>
+                <Card className="bg-surface/50 border-dashed border-2 border-border flex flex-col items-center justify-center p-12 text-center">
+                  <Lock size={48} className="text-border mb-4" />
+                  <h3 className="text-xl font-bold mb-2 text-ink">Create a Time Capsule</h3>
+                  <p className="text-ink-muted text-sm mb-6">Seal a thought today to be opened in the future.</p>
                   <Button onClick={() => setIsWriting(true)}>
                     <Plus size={20} /> New Capsule
                   </Button>
@@ -1187,32 +1175,32 @@ export default function App() {
           {activeTab === 'graph' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="graph" className="space-y-8">
               <div className="text-center mb-12">
-                <h2 className="text-4xl font-black mb-4">Insights</h2>
-                <p className="text-slate-500 font-serif italic text-xl">Patterns of your consciousness</p>
+                <h2 className="text-5xl font-black mb-4 text-ink">Insights</h2>
+                <p className="text-ink-muted font-serif italic text-xl">Patterns of your consciousness</p>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card className="h-[400px] flex flex-col">
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6">Thought Frequency</h3>
+                <Card className="h-[400px] flex flex-col p-6">
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-ink-muted mb-6">Thought Frequency</h3>
                   <div className="flex-1">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={activityData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                         <XAxis 
                           dataKey="date" 
-                          tick={{ fontSize: 10 }} 
+                          tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} 
                           tickFormatter={(val) => format(parseISO(val), 'MMM d')}
                         />
-                        <YAxis tick={{ fontSize: 10 }} />
+                        <YAxis tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} />
                         <Tooltip 
-                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                          contentStyle={{ backgroundColor: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-border)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                         />
                         <Line 
                           type="monotone" 
                           dataKey="count" 
-                          stroke="#4f46e5" 
+                          stroke="var(--color-accent)" 
                           strokeWidth={3} 
-                          dot={{ r: 4, fill: '#4f46e5' }}
+                          dot={{ r: 4, fill: 'var(--color-accent)' }}
                           activeDot={{ r: 6 }}
                         />
                       </LineChart>
@@ -1220,20 +1208,20 @@ export default function App() {
                   </div>
                 </Card>
 
-                <Card className="h-[400px] flex flex-col">
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-6">Category Distribution</h3>
+                <Card className="h-[400px] flex flex-col p-6">
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-ink-muted mb-6">Category Distribution</h3>
                   <div className="flex-1">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={stats}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                        <YAxis tick={{ fontSize: 10 }} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} />
+                        <YAxis tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} />
                         <Tooltip 
-                          contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                          contentStyle={{ backgroundColor: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-border)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                         />
                         <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                           {stats.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={['#4f46e5', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'][index % 5]} />
+                            <Cell key={`cell-${index}`} fill={['#C49B66', '#A67C52', '#8B6944', '#705637', '#55432A'][index % 5]} />
                           ))}
                         </Bar>
                       </BarChart>
@@ -1243,26 +1231,26 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="text-center">
-                  <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 mx-auto mb-4">
+                <Card className="text-center p-8">
+                  <div className="w-12 h-12 bg-surface rounded-2xl flex items-center justify-center text-accent border border-border mx-auto mb-4">
                     <BookOpen size={24} />
                   </div>
-                  <h4 className="text-2xl font-black">{thoughts.length}</h4>
-                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Total Reflections</p>
+                  <h4 className="text-3xl font-black text-ink">{thoughts.length}</h4>
+                  <p className="text-xs text-ink-muted font-bold uppercase tracking-widest">Total Reflections</p>
                 </Card>
-                <Card className="text-center">
-                  <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/50 rounded-2xl flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto mb-4">
+                <Card className="text-center p-8">
+                  <div className="w-12 h-12 bg-surface rounded-2xl flex items-center justify-center text-accent border border-border mx-auto mb-4">
                     <Mic size={24} />
                   </div>
-                  <h4 className="text-2xl font-black">{thoughts.filter(t => t.type === 'voice').length}</h4>
-                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Voice Notes</p>
+                  <h4 className="text-3xl font-black text-ink">{thoughts.filter(t => t.type === 'voice').length}</h4>
+                  <p className="text-xs text-ink-muted font-bold uppercase tracking-widest">Voice Notes</p>
                 </Card>
-                <Card className="text-center">
-                  <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/50 rounded-2xl flex items-center justify-center text-amber-600 dark:text-amber-400 mx-auto mb-4">
+                <Card className="text-center p-8">
+                  <div className="w-12 h-12 bg-surface rounded-2xl flex items-center justify-center text-accent border border-border mx-auto mb-4">
                     <Target size={24} />
                   </div>
-                  <h4 className="text-2xl font-black">{purposes.length}</h4>
-                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Core Principles</p>
+                  <h4 className="text-3xl font-black text-ink">{purposes.length}</h4>
+                  <p className="text-xs text-ink-muted font-bold uppercase tracking-widest">Core Principles</p>
                 </Card>
               </div>
             </motion.div>
@@ -1272,8 +1260,8 @@ export default function App() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="book" className="space-y-8">
               <div className="flex items-center justify-between mb-12">
                 <div>
-                  <h2 className="text-4xl font-black">Archive</h2>
-                  <p className="text-slate-500 font-serif italic text-xl">The complete history of your mind</p>
+                  <h2 className="text-5xl font-black text-ink">Archive</h2>
+                  <p className="text-ink-muted font-serif italic text-xl">The complete history of your mind</p>
                 </div>
                 <Button variant="outline" onClick={() => {
                   const doc = new jsPDF();
@@ -1295,24 +1283,24 @@ export default function App() {
                 {filteredThoughts.map(thought => {
                   const isLocked = thought.unlock_at && isAfter(parseISO(thought.unlock_at), new Date());
                   return (
-                    <Card key={thought.id} className={cn("p-4 flex items-center gap-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer", isLocked && "opacity-60")} onClick={() => { setEditingThought(thought); setIsWriting(true); }}>
+                    <Card key={thought.id} className={cn("p-6 flex items-center gap-6 hover:bg-surface/80 transition-colors cursor-pointer", isLocked && "opacity-60")} onClick={() => { setEditingThought(thought); setIsWriting(true); }}>
                       <div className="w-16 text-center">
-                        <p className="text-[10px] font-black text-slate-400 uppercase">{format(parseISO(thought.created_at), 'MMM')}</p>
-                        <p className="text-xl font-black">{format(parseISO(thought.created_at), 'dd')}</p>
+                        <p className="text-[10px] font-black text-ink-muted uppercase">{format(parseISO(thought.created_at), 'MMM')}</p>
+                        <p className="text-2xl font-black text-ink">{format(parseISO(thought.created_at), 'dd')}</p>
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-bold text-sm mb-1">{isLocked ? 'Locked Time Capsule' : (thought.title || 'Untitled Thought')}</h4>
-                        <p className={cn("text-slate-500 text-sm line-clamp-1", isLocked && "blur-sm select-none")}>
+                        <h4 className="font-bold text-lg mb-1 text-ink">{isLocked ? 'Locked Time Capsule' : (thought.title || 'Untitled Thought')}</h4>
+                        <p className={cn("text-ink-muted text-sm line-clamp-1", isLocked && "blur-sm select-none")}>
                           {isLocked ? "This thought is sealed in time." : thought.text}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {isLocked && <Lock size={12} className="text-slate-400" />}
-                        {thought.parent_id && <LinkIcon size={12} className="text-indigo-500" />}
-                        <span className="text-[10px] font-bold px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 uppercase tracking-widest">
+                        {isLocked && <Lock size={12} className="text-ink-muted" />}
+                        {thought.parent_id && <LinkIcon size={12} className="text-accent" />}
+                        <span className="text-[10px] font-bold px-2 py-1 bg-surface border border-border rounded-lg text-ink-muted uppercase tracking-widest">
                           {thought.category_name || 'General'}
                         </span>
-                        <ChevronRight size={16} className="text-slate-300" />
+                        <ChevronRight size={16} className="text-border" />
                       </div>
                     </Card>
                   );
@@ -1323,25 +1311,25 @@ export default function App() {
           {activeTab === 'purpose' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="purpose" className="space-y-8">
               <div className="text-center mb-12">
-                <h2 className="text-4xl font-black mb-4">Principles</h2>
-                <p className="text-slate-500 font-serif italic text-xl">The core beliefs that guide my journey</p>
+                <h2 className="text-5xl font-black mb-4 text-ink">Principles</h2>
+                <p className="text-ink-muted font-serif italic text-xl">The core beliefs that guide my journey</p>
               </div>
               <div className="grid grid-cols-1 gap-4">
                 {purposes.map(p => (
-                  <Card key={p.id} className="group border-l-4 border-l-indigo-500">
+                  <Card key={p.id} className="group border-l-4 border-accent p-6">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <p className="text-xl font-serif italic leading-relaxed">"{p.text}"</p>
+                        <p className="text-2xl font-serif italic leading-relaxed text-ink">"{p.text}"</p>
                         {p.audio_data && <VoicePlayer audioData={p.audio_data} />}
                       </div>
-                      <button onClick={async () => { if (confirm('Delete?')) { await fetch(`/api/purpose/${p.id}`, { method: 'DELETE' }); fetchData(); } }} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500">
+                      <button onClick={async () => { if (confirm('Delete?')) { await fetch(`/api/purpose/${p.id}`, { method: 'DELETE' }); fetchData(); } }} className="opacity-0 group-hover:opacity-100 p-2 text-ink-muted hover:text-red-500">
                         <Trash2 size={16} />
                       </button>
                     </div>
                   </Card>
                 ))}
-                <Card className="bg-slate-50 dark:bg-slate-800/50 border-dashed border-2 border-slate-200 dark:border-slate-700">
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Add a new principle</h3>
+                <Card className="bg-surface/50 border-dashed border-2 border-border p-8">
+                  <h3 className="text-xs font-bold text-ink-muted uppercase tracking-widest mb-4">Add a new principle</h3>
                   <div className="space-y-4">
                     <div className="flex gap-2">
                       <TextArea 
@@ -1363,8 +1351,8 @@ export default function App() {
                     </div>
 
                     {audioBlob && (
-                      <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl flex items-center justify-between">
-                        <span className="text-xs font-bold text-indigo-600">Voice Principle Recorded ({recordingTime}s)</span>
+                      <div className="p-3 bg-accent/10 rounded-xl flex items-center justify-between">
+                        <span className="text-xs font-bold text-accent">Voice Principle Recorded ({recordingTime}s)</span>
                         <button onClick={resetRecording} className="text-red-500"><Trash2 size={16} /></button>
                       </div>
                     )}
@@ -1400,25 +1388,25 @@ export default function App() {
           {activeTab === 'questions' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="questions" className="space-y-8">
               <div className="text-center mb-12">
-                <h2 className="text-4xl font-black mb-4">Questions</h2>
-                <p className="text-slate-500 font-serif italic text-xl">Questions I am currently exploring</p>
+                <h2 className="text-5xl font-black mb-4 text-ink">Questions</h2>
+                <p className="text-ink-muted font-serif italic text-xl">Questions I am currently exploring</p>
               </div>
               <div className="grid grid-cols-1 gap-4">
                 {questions.map(q => (
-                  <Card key={q.id} className="group">
+                  <Card key={q.id} className="group p-6">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <p className="text-xl font-serif leading-relaxed">{q.text}</p>
+                        <p className="text-2xl font-serif leading-relaxed text-ink">{q.text}</p>
                         {q.audio_data && <VoicePlayer audioData={q.audio_data} />}
                       </div>
-                      <button onClick={async () => { if (confirm('Delete?')) { await fetch(`/api/questions/${q.id}`, { method: 'DELETE' }); fetchData(); } }} className="opacity-0 group-hover:opacity-100 p-2 text-slate-400 hover:text-red-500">
+                      <button onClick={async () => { if (confirm('Delete?')) { await fetch(`/api/questions/${q.id}`, { method: 'DELETE' }); fetchData(); } }} className="opacity-0 group-hover:opacity-100 p-2 text-ink-muted hover:text-red-500">
                         <Trash2 size={16} />
                       </button>
                     </div>
                   </Card>
                 ))}
-                <Card className="bg-slate-50 dark:bg-slate-800/50 border-dashed border-2 border-slate-200 dark:border-slate-700">
-                  <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Add a new question</h3>
+                <Card className="bg-surface/50 border-dashed border-2 border-border p-8">
+                  <h3 className="text-xs font-bold text-ink-muted uppercase tracking-widest mb-4">Add a new question</h3>
                   <div className="space-y-4">
                     <div className="flex gap-2">
                       <TextArea 
@@ -1440,8 +1428,8 @@ export default function App() {
                     </div>
 
                     {audioBlob && (
-                      <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl flex items-center justify-between">
-                        <span className="text-xs font-bold text-indigo-600">Voice Question Recorded ({recordingTime}s)</span>
+                      <div className="p-3 bg-accent/10 rounded-xl flex items-center justify-between">
+                        <span className="text-xs font-bold text-accent">Voice Question Recorded ({recordingTime}s)</span>
                         <button onClick={resetRecording} className="text-red-500"><Trash2 size={16} /></button>
                       </div>
                     )}
@@ -1476,6 +1464,21 @@ export default function App() {
         </AnimatePresence>
       </main>
 
+      {/* Footer Disclaimer */}
+      <footer className="py-12 px-6 border-t border-border/30 mt-20">
+        <div className="max-w-4xl mx-auto">
+          <Card className="bg-surface/30 border-border/20 p-6 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted mb-2">Disclaimer</p>
+            <p className="text-xs text-ink-muted/60 leading-relaxed font-serif italic">
+              Thought Shaastra is a personal tool for reflection and growth. Your data is stored locally and optionally backed up to a secure cloud if you choose to sign in. We do not use your data for any other purpose, and no artificial intelligence is used in the functioning or operation of this application. You are the sole owner of your thoughts.
+            </p>
+          </Card>
+          <div className="mt-8 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-accent/40">© {new Date().getFullYear()} Thought Shaastra</p>
+          </div>
+        </div>
+      </footer>
+
       {/* Floating Action Button (Mobile) */}
       <div className="lg:hidden fixed bottom-8 right-8 z-40">
         <button 
@@ -1493,26 +1496,26 @@ export default function App() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 bg-white dark:bg-slate-950 z-[100] flex flex-col"
+            className="fixed inset-0 bg-bg z-[100] flex flex-col"
           >
-            <header className="h-16 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-6 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md sticky top-0 z-10">
-              <div className="flex items-center gap-4">
-                <button onClick={() => setIsDocumentEditorOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                  <X size={20} />
+            <header className="h-20 border-b border-border flex items-center justify-between px-8 bg-bg/80 backdrop-blur-md sticky top-0 z-10">
+              <div className="flex items-center gap-6">
+                <button onClick={() => setIsDocumentEditorOpen(false)} className="p-3 hover:bg-surface rounded-2xl transition-colors text-ink">
+                  <X size={24} />
                 </button>
-                <div className="h-6 w-px bg-slate-200 dark:bg-slate-800" />
+                <div className="h-8 w-px bg-border" />
                 <div>
-                  <h2 className="font-black text-lg">{activeDocument.title}</h2>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Last saved {formatTime(activeDocument.updated_at)}</p>
+                  <h2 className="font-black text-2xl text-ink">{activeDocument.title}</h2>
+                  <p className="text-[10px] font-bold text-ink-muted uppercase tracking-[0.2em]">Last saved {formatTime(activeDocument.updated_at)}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <Button variant="ghost" size="sm" onClick={() => {
                   const text = activeDocument.sections?.map(s => `${s.title ? `${s.title}\n\n` : ''}${s.content}\n\n`).join('\n');
                   navigator.clipboard.writeText(`# ${activeDocument.title}\n\n${text}`);
                   alert('Document copied to clipboard!');
                 }}>
-                  <Share2 size={16} /> Share
+                  <Share2 size={18} /> Share
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => {
                   const text = activeDocument.sections?.map(s => `${s.title ? `${s.title}\n\n` : ''}${s.content}\n\n`).join('\n');
@@ -1523,28 +1526,17 @@ export default function App() {
                   a.download = `${activeDocument.title.toLowerCase().replace(/\s+/g, '-')}.txt`;
                   a.click();
                 }}>
-                  <Download size={16} /> Text
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => {
-                  const text = activeDocument.sections?.map(s => `${s.title ? `## ${s.title}\n\n` : ''}${s.content}\n\n`).join('---\n\n');
-                  const blob = new Blob([`# ${activeDocument.title}\n\n${text}`], { type: 'text/markdown' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `${activeDocument.title.toLowerCase().replace(/\s+/g, '-')}.md`;
-                  a.click();
-                }}>
-                  <Download size={16} /> MD
+                  <Download size={18} /> Text
                 </Button>
                 <Button size="sm" onClick={() => setIsDocumentEditorOpen(false)}>Close Editor</Button>
               </div>
             </header>
 
             <div className="flex-1 overflow-y-auto">
-              <div className="max-w-3xl mx-auto py-20 px-6 space-y-12">
-                <div className="space-y-4">
+              <div className="max-w-3xl mx-auto py-24 px-8 space-y-16">
+                <div className="space-y-6">
                   <input 
-                    className="text-5xl font-black bg-transparent border-none outline-none w-full placeholder:text-slate-200 dark:placeholder:text-slate-800"
+                    className="text-6xl font-black bg-transparent border-none outline-none w-full placeholder:text-border text-ink"
                     value={activeDocument.title}
                     onChange={(e) => {
                       const newTitle = e.target.value;
@@ -1559,7 +1551,7 @@ export default function App() {
                     placeholder="Document Title"
                   />
                   <textarea 
-                    className="text-xl font-serif italic text-slate-500 bg-transparent border-none outline-none w-full resize-none placeholder:text-slate-200 dark:placeholder:text-slate-800"
+                    className="text-2xl font-serif italic text-ink-muted bg-transparent border-none outline-none w-full resize-none placeholder:text-border"
                     value={activeDocument.description || ''}
                     onChange={(e) => {
                       const newDesc = e.target.value;
@@ -1576,22 +1568,22 @@ export default function App() {
                   />
                 </div>
 
-                <div className="space-y-16">
+                <div className="space-y-20">
                   {activeDocument.sections?.map((section, idx) => (
-                    <div key={section.id} className="group relative space-y-4">
-                      <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity absolute -left-12 top-0">
+                    <div key={section.id} className="group relative space-y-6">
+                      <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity absolute -left-16 top-0">
                         <button onClick={() => {
                           if (confirm('Delete section?')) {
                             fetch(`/api/sections/${section.id}`, { method: 'DELETE' }).then(() => {
                               fetch(`/api/documents/${activeDocument.id}`).then(res => res.json()).then(data => setActiveDocument(data));
                             });
                           }
-                        }} className="p-2 text-slate-300 hover:text-red-500">
-                          <Trash2 size={16} />
+                        }} className="p-3 text-border hover:text-red-500">
+                          <Trash2 size={20} />
                         </button>
                       </div>
                       <input 
-                        className="text-2xl font-bold bg-transparent border-none outline-none w-full placeholder:text-slate-200 dark:placeholder:text-slate-800"
+                        className="text-3xl font-bold bg-transparent border-none outline-none w-full placeholder:text-border text-ink"
                         value={section.title || ''}
                         onChange={(e) => {
                           const newTitle = e.target.value;
@@ -1608,7 +1600,7 @@ export default function App() {
                         placeholder="Section Title"
                       />
                       <textarea 
-                        className="text-lg font-serif leading-relaxed text-slate-700 dark:text-slate-300 bg-transparent border-none outline-none w-full resize-none min-h-[100px] placeholder:text-slate-200 dark:placeholder:text-slate-800"
+                        className="text-xl font-serif leading-relaxed text-ink bg-transparent border-none outline-none w-full resize-none min-h-[100px] placeholder:text-border"
                         value={section.content}
                         onChange={(e) => {
                           const newContent = e.target.value;
@@ -1642,37 +1634,37 @@ export default function App() {
                         fetch(`/api/documents/${activeDocument.id}`).then(res => res.json()).then(data => setActiveDocument(data));
                       });
                     }}
-                    className="w-full py-8 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl text-slate-300 hover:text-indigo-500 hover:border-indigo-200 transition-all flex flex-col items-center gap-2"
+                    className="w-full py-12 border-2 border-dashed border-border rounded-[2rem] text-border hover:text-accent hover:border-accent transition-all flex flex-col items-center gap-4"
                   >
-                    <Plus size={24} />
-                    <span className="font-bold text-sm uppercase tracking-widest">Add Section</span>
+                    <Plus size={32} />
+                    <span className="font-bold text-sm uppercase tracking-[0.3em]">Add Section</span>
                   </button>
                 </div>
 
-                <div className="pt-20 border-t border-slate-100 dark:border-slate-800 space-y-8">
-                  <h3 className="text-sm font-black text-slate-400 uppercase tracking-[0.3em]">Linked Thoughts</h3>
+                <div className="pt-24 border-t border-border space-y-10">
+                  <h3 className="text-sm font-black text-ink-muted uppercase tracking-[0.4em]">Linked Thoughts</h3>
                   <div className="grid grid-cols-1 gap-4">
                     {activeDocument.linkedThoughts?.map(thought => (
-                      <Card key={thought.id} className="p-4 flex items-center justify-between group">
-                        <div className="flex items-center gap-4">
-                          <div className="w-8 h-8 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-                            <Clock size={16} />
+                      <Card key={thought.id} className="p-6 flex items-center justify-between group">
+                        <div className="flex items-center gap-6">
+                          <div className="w-12 h-12 bg-surface rounded-2xl flex items-center justify-center text-accent border border-border">
+                            <Clock size={20} />
                           </div>
                           <div>
-                            <p className="text-sm font-bold">{thought.title || thought.text.substring(0, 40)}...</p>
-                            <p className="text-[10px] text-slate-400">{formatDate(thought.created_at)}</p>
+                            <p className="text-lg font-bold text-ink">{thought.title || thought.text.substring(0, 40)}...</p>
+                            <p className="text-xs text-ink-muted uppercase tracking-widest font-bold">{formatDate(thought.created_at)}</p>
                           </div>
                         </div>
                         <button onClick={() => {
                           fetch(`/api/documents/${activeDocument.id}/link/${thought.id}`, { method: 'DELETE' }).then(() => {
                             fetch(`/api/documents/${activeDocument.id}`).then(res => res.json()).then(data => setActiveDocument(data));
                           });
-                        }} className="opacity-0 group-hover:opacity-100 p-2 text-slate-300 hover:text-red-500 transition-opacity">
-                          <X size={16} />
+                        }} className="opacity-0 group-hover:opacity-100 p-3 text-border hover:text-red-500 transition-opacity">
+                          <X size={20} />
                         </button>
                       </Card>
                     ))}
-                    <Button variant="outline" className="border-dashed" onClick={() => {
+                    <Button variant="outline" className="border-dashed py-6" onClick={() => {
                       // Simple prompt for linking existing thoughts for now
                       const thoughtId = prompt('Enter Thought ID to link (or select from list in future):');
                       if (thoughtId) {
@@ -1681,7 +1673,7 @@ export default function App() {
                         });
                       }
                     }}>
-                      <LinkIcon size={16} /> Link Existing Thought
+                      <LinkIcon size={18} /> Link Existing Thought
                     </Button>
                   </div>
                 </div>
@@ -1702,31 +1694,31 @@ export default function App() {
             type: audioBlob ? 'voice' : 'text',
             audio_data: audioBlob ? (e.currentTarget as any).audio_base64.value : null
           });
-        }} className="space-y-4">
+        }} className="space-y-6">
           <Input name="title" placeholder="Title (Optional)" defaultValue={editingThought?.title || ''} />
           <div className="relative">
-            <TextArea name="text" placeholder="What's on your mind?" required defaultValue={editingThought?.text || ''} />
-            <div className="absolute bottom-3 right-3 flex gap-2">
+            <TextArea name="text" placeholder="What's on your mind?" required defaultValue={editingThought?.text || ''} className="min-h-[200px]" />
+            <div className="absolute bottom-4 right-4 flex gap-3">
               {isRecording ? (
-                <button type="button" onClick={stopRecording} className="p-2 bg-red-500 text-white rounded-lg animate-pulse">
-                  <Square size={16} />
+                <button type="button" onClick={stopRecording} className="p-3 bg-red-500 text-white rounded-2xl animate-pulse">
+                  <Square size={20} />
                 </button>
               ) : (
-                <button type="button" onClick={startRecording} className="p-2 bg-indigo-100 text-indigo-600 rounded-lg hover:bg-indigo-200">
-                  <Mic size={16} />
+                <button type="button" onClick={startRecording} className="p-3 bg-surface text-accent rounded-2xl hover:bg-border transition-colors border border-border">
+                  <Mic size={20} />
                 </button>
               )}
             </div>
           </div>
 
           {audioBlob && (
-            <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-                <span className="text-xs font-bold text-indigo-600">Voice Note Recorded ({recordingTime}s)</span>
+            <div className="p-4 bg-accent/10 rounded-2xl flex items-center justify-between border border-accent/20">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-accent animate-pulse" />
+                <span className="text-sm font-bold text-accent uppercase tracking-widest">Voice Note Recorded ({recordingTime}s)</span>
               </div>
-              <button type="button" onClick={resetRecording} className="text-red-500 hover:text-red-600">
-                <Trash2 size={16} />
+              <button type="button" onClick={resetRecording} className="text-red-500 hover:text-red-600 p-2">
+                <Trash2 size={20} />
               </button>
               <input type="hidden" name="audio_base64" id="audio_base64" />
               {/* Convert blob to base64 and set to hidden input */}
@@ -1737,37 +1729,37 @@ export default function App() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Category</label>
-              <select name="category_id" className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-sm" defaultValue={editingThought?.category_id || ''}>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Category</label>
+              <select name="category_id" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors" defaultValue={editingThought?.category_id || ''}>
                 <option value="">Uncategorized</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Unlock Date (Capsule)</label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Unlock Date (Capsule)</label>
               <Input name="unlock_at" type="date" defaultValue={editingThought?.unlock_at ? format(parseISO(editingThought.unlock_at), 'yyyy-MM-dd') : ''} />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Tags</label>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Tags</label>
               <Input name="tags" placeholder="philosophy, ideas" defaultValue={editingThought?.tags || ''} />
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Privacy</label>
-              <select name="is_private" className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-sm" defaultValue={editingThought?.is_private || 0}>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Privacy</label>
+              <select name="is_private" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors" defaultValue={editingThought?.is_private || 0}>
                 <option value={0}>Public</option>
                 <option value={1}>Private</option>
               </select>
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Link to Thought</label>
-            <select name="parent_id" className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-sm" defaultValue={editingThought?.parent_id || ''}>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Link to Thought</label>
+            <select name="parent_id" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors" defaultValue={editingThought?.parent_id || ''}>
               <option value="">None</option>
               {thoughts.filter(t => t.id !== editingThought?.id).map(t => (
                 <option key={t.id} value={t.id}>{t.title || t.text.substring(0, 30)}...</option>
@@ -1775,9 +1767,9 @@ export default function App() {
             </select>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Link to Document</label>
-            <select name="document_id" className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-sm">
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Link to Document</label>
+            <select name="document_id" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors">
               <option value="">None</option>
               {documents.map(d => (
                 <option key={d.id} value={d.id}>{d.title}</option>
@@ -1785,8 +1777,8 @@ export default function App() {
             </select>
           </div>
 
-          <div className="pt-4">
-            <Button type="submit" className="w-full py-3 text-lg">Save Thought</Button>
+          <div className="pt-6">
+            <Button type="submit" className="w-full py-4 text-lg">Save Thought</Button>
           </div>
         </form>
       </Modal>
@@ -1825,85 +1817,85 @@ export default function App() {
             setIsCreateDocumentModalOpen(false);
             setIsDocumentEditorOpen(true);
           }
-        }} className="space-y-6">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Title</label>
+        }} className="space-y-8">
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Title</label>
             <Input name="title" placeholder="Document Title" required />
           </div>
           
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Description</label>
-            <TextArea name="description" placeholder="What is this project about?" rows={2} />
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Description</label>
+            <TextArea name="description" placeholder="What is this project about?" rows={3} />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Category</label>
-              <select name="category_id" className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-sm">
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Category</label>
+              <select name="category_id" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors">
                 <option value="">Uncategorized</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Privacy</label>
-              <select name="is_private" className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:bg-slate-900 dark:border-slate-800 text-sm">
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Privacy</label>
+              <select name="is_private" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors">
                 <option value="1">Private</option>
                 <option value="0">Public</option>
               </select>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Select Template</label>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-4">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Select Template</label>
+            <div className="grid grid-cols-2 gap-4">
               {DOCUMENT_TEMPLATES.map(template => (
-                <label key={template.id} className="relative flex flex-col p-4 border rounded-xl cursor-pointer hover:border-indigo-500 transition-all has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50 dark:has-[:checked]:bg-indigo-900/20">
+                <label key={template.id} className="relative flex flex-col p-6 border border-border rounded-3xl cursor-pointer hover:border-accent transition-all has-[:checked]:border-accent has-[:checked]:bg-accent/10">
                   <input type="radio" name="template" value={template.id} defaultChecked={template.id === 'blank'} className="sr-only" />
-                  <div className="text-indigo-600 mb-2">{template.icon}</div>
-                  <span className="font-bold text-sm">{template.name}</span>
+                  <div className="text-accent mb-4">{template.icon}</div>
+                  <span className="font-bold text-lg text-ink">{template.name}</span>
                 </label>
               ))}
             </div>
           </div>
 
-          <Button type="submit" className="w-full py-3 text-lg">Create Document</Button>
+          <Button type="submit" className="w-full py-4 text-lg">Create Document</Button>
         </form>
       </Modal>
 
       {/* Auth Modal */}
       <Modal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} title={authMode === 'login' ? "Welcome Back" : "Create Backup Account"}>
-        <form onSubmit={handleAuth} className="space-y-4">
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/50 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 mx-auto mb-4">
-              <Shield size={32} />
+        <form onSubmit={handleAuth} className="space-y-6">
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 bg-surface rounded-3xl flex items-center justify-center text-accent border border-border mx-auto mb-6">
+              <Shield size={40} />
             </div>
-            <p className="text-slate-500 text-sm">Protect your thoughts and sync them across all your devices.</p>
+            <p className="text-ink-muted text-sm leading-relaxed">Protect your thoughts and sync them across all your devices.</p>
           </div>
           
           {authMode === 'register' && (
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-400 ml-1">Name</label>
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Name</label>
               <Input name="name" placeholder="Your Name" required />
             </div>
           )}
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-400 ml-1">Email</label>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Email</label>
             <Input name="email" type="email" placeholder="email@example.com" required />
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-400 ml-1">Password</label>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Password</label>
             <Input name="password" type="password" placeholder="••••••••" required />
           </div>
           
-          <Button type="submit" className="w-full py-3 mt-4">
+          <Button type="submit" className="w-full py-4 mt-6">
             {authMode === 'login' ? 'Sign In' : 'Create Account'}
           </Button>
           
-          <div className="text-center mt-4">
+          <div className="text-center mt-6">
             <button 
               type="button" 
               onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
-              className="text-sm text-indigo-600 hover:underline"
+              className="text-sm text-accent hover:underline font-bold"
             >
               {authMode === 'login' ? "Don't have an account? Register" : "Already have an account? Login"}
             </button>
@@ -1912,20 +1904,20 @@ export default function App() {
       </Modal>
 
       {/* Welcome Modal */}
-      <Modal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} title="Welcome to Thought Shaastra">
-        <div className="text-center space-y-6">
-          <div className="w-20 h-20 bg-indigo-600 text-white rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-indigo-600/40">
-            <Sparkles size={40} />
+      <Modal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} title="Welcome to Shaastra">
+        <div className="text-center space-y-8 py-6">
+          <div className="w-24 h-24 bg-accent text-bg rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl shadow-accent/40">
+            <Sunrise size={48} />
           </div>
-          <div>
-            <h3 className="text-2xl font-black mb-2">Capture your thoughts before they disappear.</h3>
-            <p className="text-slate-500 font-serif italic">A digital sanctuary for your mind.</p>
+          <div className="space-y-4">
+            <h3 className="text-3xl font-black text-ink leading-tight">Capture your thoughts before they disappear.</h3>
+            <p className="text-ink-muted font-serif italic text-xl">A digital sanctuary for your mind.</p>
           </div>
-          <div className="grid grid-cols-1 gap-3 pt-4">
-            <Button className="py-4 text-lg" onClick={() => { setIsWelcomeOpen(false); setIsWriting(true); }}>
-              Write Your First Thought <ArrowRight size={20} />
+          <div className="grid grid-cols-1 gap-4 pt-6">
+            <Button className="py-5 text-xl" onClick={() => { setIsWelcomeOpen(false); setIsWriting(true); }}>
+              Write Your First Thought <ArrowRight size={24} className="ml-2" />
             </Button>
-            <Button variant="ghost" onClick={() => { setIsWelcomeOpen(false); setActiveTab('guide'); }}>
+            <Button variant="ghost" className="text-ink-muted hover:text-ink" onClick={() => { setIsWelcomeOpen(false); setActiveTab('guide'); }}>
               Learn How It Works
             </Button>
           </div>
@@ -1939,23 +1931,23 @@ export default function App() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 left-6 right-6 lg:left-auto lg:right-6 lg:w-96 bg-indigo-600 text-white p-6 rounded-3xl shadow-2xl z-50"
+            className="fixed bottom-8 left-8 right-8 lg:left-auto lg:right-8 lg:w-[400px] bg-accent text-bg p-8 rounded-[2.5rem] shadow-2xl z-50"
           >
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-2 bg-white/20 rounded-xl">
-                <Shield size={24} />
+            <div className="flex items-start justify-between mb-6">
+              <div className="p-3 bg-bg/20 rounded-2xl">
+                <Shield size={28} />
               </div>
-              <button onClick={() => { setIsBackupPromptOpen(false); localStorage.setItem('backup_prompt_dismissed', 'true'); }} className="p-1 hover:bg-white/10 rounded-full">
-                <X size={20} />
+              <button onClick={() => { setIsBackupPromptOpen(false); localStorage.setItem('backup_prompt_dismissed', 'true'); }} className="p-2 hover:bg-bg/10 rounded-full transition-colors">
+                <X size={24} />
               </button>
             </div>
-            <h3 className="text-xl font-bold mb-2">Protect your thoughts.</h3>
-            <p className="text-indigo-100 text-sm mb-6">You've written {thoughts.length} thoughts. Create a free account to safely back them up to the cloud.</p>
-            <div className="flex gap-3">
-              <Button variant="secondary" className="flex-1 bg-white text-indigo-600 hover:bg-indigo-50" onClick={() => { setIsBackupPromptOpen(false); setIsAuthModalOpen(true); }}>
+            <h3 className="text-2xl font-black mb-3">Protect your thoughts.</h3>
+            <p className="text-bg/80 text-lg mb-8 leading-relaxed">You've written {thoughts.length} thoughts. Create a free account to safely back them up to the cloud.</p>
+            <div className="flex gap-4">
+              <Button variant="secondary" className="flex-1 bg-bg text-accent hover:bg-surface border-none py-4 text-lg" onClick={() => { setIsBackupPromptOpen(false); setIsAuthModalOpen(true); }}>
                 Create Account
               </Button>
-              <Button variant="ghost" className="text-white hover:bg-white/10" onClick={() => setIsBackupPromptOpen(false)}>
+              <Button variant="ghost" className="text-bg hover:bg-bg/10 py-4 text-lg" onClick={() => setIsBackupPromptOpen(false)}>
                 Later
               </Button>
             </div>
