@@ -25,7 +25,7 @@ import {
   Square,
   Play,
   HelpCircle,
-  Sparkles,
+  Flower2,
   Trash2,
   X,
   LogOut,
@@ -39,7 +39,15 @@ import {
   Menu,
   Feather,
   Quote,
-  Sunrise
+  Sunrise,
+  FileText,
+  Image as ImageIcon,
+  Video,
+  Paperclip,
+  Bell,
+  UserPlus,
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isAfter, parseISO, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
@@ -61,7 +69,7 @@ import { Thought, Category, Purpose, CategoryStat, Connection, Question, User, D
 
 // --- Custom Hooks ---
 
-const useVoiceRecorder = () => {
+const useVoiceRecorder = (showToast: (msg: string, type: 'success' | 'error' | 'info') => void) => {
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
@@ -108,7 +116,7 @@ const useVoiceRecorder = () => {
         message = "Microphone permission request was dismissed. Please click the microphone icon again and select 'Allow'.";
       }
       
-      alert(message);
+      showToast(message, 'error');
     }
   };
 
@@ -146,6 +154,64 @@ const useVoiceRecorder = () => {
 };
 
 // --- Components ---
+
+// --- Components ---
+
+const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error' | 'info', onClose: () => void }) => (
+  <motion.div 
+    initial={{ opacity: 0, y: 50, scale: 0.9 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    exit={{ opacity: 0, scale: 0.9 }}
+    className={cn(
+      "fixed bottom-8 right-8 z-[100] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border backdrop-blur-xl",
+      type === 'success' ? "bg-green-500/10 border-green-500/20 text-green-500" :
+      type === 'error' ? "bg-red-500/10 border-red-500/20 text-red-500" :
+      "bg-accent/10 border-accent/20 text-accent"
+    )}
+  >
+    {type === 'success' ? <CheckCircle2 size={20} /> : type === 'error' ? <AlertCircle size={20} /> : <Info size={20} />}
+    <span className="text-sm font-bold">{message}</span>
+    <button onClick={onClose} className="ml-4 p-1 hover:bg-white/10 rounded-lg transition-colors">
+      <X size={16} />
+    </button>
+  </motion.div>
+);
+
+const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel }: { isOpen: boolean, title: string, message: string, onConfirm: () => void, onCancel: () => void }) => (
+  <Modal isOpen={isOpen} onClose={onCancel} title={title}>
+    <div className="space-y-8 py-4">
+      <p className="text-ink-muted text-lg leading-relaxed">{message}</p>
+      <div className="flex gap-4">
+        <Button variant="outline" className="flex-1" onClick={onCancel}>Cancel</Button>
+        <Button className="flex-1 bg-red-500 hover:bg-red-600 border-red-500" onClick={onConfirm}>Confirm</Button>
+      </div>
+    </div>
+  </Modal>
+);
+
+const PromptDialog = ({ isOpen, title, message, placeholder, onConfirm, onCancel }: { isOpen: boolean, title: string, message: string, placeholder: string, onConfirm: (val: string) => void, onCancel: () => void }) => {
+  const [value, setValue] = useState('');
+  return (
+    <Modal isOpen={isOpen} onClose={onCancel} title={title}>
+      <form onSubmit={(e) => { e.preventDefault(); onConfirm(value); setValue(''); }} className="space-y-8 py-4">
+        <div className="space-y-4">
+          <p className="text-ink-muted text-lg leading-relaxed">{message}</p>
+          <Input 
+            value={value} 
+            onChange={(e) => setValue(e.target.value)} 
+            placeholder={placeholder} 
+            autoFocus 
+            required
+          />
+        </div>
+        <div className="flex gap-4">
+          <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>Cancel</Button>
+          <Button type="submit" className="flex-1">Continue</Button>
+        </div>
+      </form>
+    </Modal>
+  );
+};
 
 const Logo = () => (
   <div className="flex items-center gap-3 sm:gap-6">
@@ -258,7 +324,7 @@ const TextArea = ({ className, ...props }: React.TextareaHTMLAttributes<HTMLText
 );
 
 const Card = ({ children, className, ...props }: { children: React.ReactNode; className?: string } & React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn('bg-surface border border-border rounded-2xl p-6 shadow-xl', className)} {...props}>
+  <div className={cn('bg-surface border border-border rounded-2xl p-6 shadow-xl overflow-hidden break-words', className)} {...props}>
     {children}
   </div>
 );
@@ -330,12 +396,237 @@ const VoicePlayer = ({ audioData }: { audioData: string }) => {
   );
 };
 
+const AttachmentList = ({ attachments, onRemove }: { attachments: any[]; onRemove?: (id: string) => void }) => {
+  if (!attachments || attachments.length === 0) return null;
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-3">
+      {attachments.map(att => (
+        <div key={att.id} className="group relative flex items-center gap-3 p-3 bg-surface border border-border rounded-2xl hover:border-accent transition-all">
+          <div className="text-accent">
+            {att.type.includes('image') ? <ImageIcon size={16} /> : 
+             att.type.includes('video') ? <Video size={16} /> : 
+             att.type === 'link' ? <LinkIcon size={16} /> : <FileText size={16} />}
+          </div>
+          <div className="max-w-[150px] truncate text-[10px] font-bold text-ink-muted uppercase tracking-widest">
+            {att.name}
+          </div>
+          {onRemove && (
+            <button 
+              onClick={() => onRemove(att.id)}
+              className="p-1 text-red-500 hover:bg-red-500/10 rounded-full"
+            >
+              <X size={12} />
+            </button>
+          )}
+          {!onRemove && att.type === 'link' && (
+            <a href={att.data} target="_blank" rel="noopener noreferrer" className="absolute inset-0" />
+          )}
+          {!onRemove && att.type.includes('image') && (
+            <button onClick={() => window.open(att.data)} className="absolute inset-0" />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const DOCUMENT_TEMPLATES = [
   { id: 'blank', name: 'Blank Document', icon: <BookOpen size={16} />, sections: [{ title: 'Introduction', content: '' }] },
-  { id: 'essay', name: 'Essay', icon: <Edit3 size={16} />, sections: [{ title: 'Introduction', content: '' }, { title: 'Body Paragraph 1', content: '' }, { title: 'Body Paragraph 2', content: '' }, { title: 'Conclusion', content: '' }] },
-  { id: 'research', name: 'Research Notes', icon: <Search size={16} />, sections: [{ title: 'Abstract', content: '' }, { title: 'Literature Review', content: '' }, { title: 'Methodology', content: '' }, { title: 'Findings', content: '' }] },
-  { id: 'life-plan', name: 'Life Plan', icon: <Target size={16} />, sections: [{ title: 'Vision', content: '' }, { title: 'Short-term Goals', content: '' }, { title: 'Long-term Goals', content: '' }, { title: 'Action Steps', content: '' }] },
+  { id: 'essay', name: 'Essay', icon: <Edit3 size={16} />, sections: [{ title: 'Introduction', content: '' }, { title: 'Body', content: '' }, { title: 'Conclusion', content: '' }] },
+  { id: 'research', name: 'Research Paper', icon: <Search size={16} />, sections: [{ title: 'Abstract', content: '' }, { title: 'Introduction', content: '' }, { title: 'Methodology', content: '' }, { title: 'Results', content: '' }, { title: 'Discussion', content: '' }] },
+  { id: 'journal', name: 'Journal Entry', icon: <Clock size={16} />, sections: [{ title: 'Reflections', content: '' }, { title: 'Gratitude', content: '' }, { title: 'Goals', content: '' }] }
 ];
+
+const ThoughtEditor = ({ 
+  editingThought, 
+  categories, 
+  thoughts, 
+  documents, 
+  onSave, 
+  isRecording, 
+  startRecording, 
+  stopRecording, 
+  resetRecording, 
+  audioBlob, 
+  recordingTime, 
+  blobToBase64,
+  promptAction
+}: any) => {
+  const [attachments, setAttachments] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (editingThought?.attachments) {
+      try {
+        setAttachments(JSON.parse(editingThought.attachments));
+      } catch (e) {
+        setAttachments([]);
+      }
+    } else {
+      setAttachments([]);
+    }
+  }, [editingThought]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      setAttachments(prev => [...prev, {
+        id: Math.random().toString(36).substring(7),
+        name: file.name,
+        type: file.type,
+        data: base64,
+        size: file.size
+      }]);
+    };
+    reader.readAsDataURL(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  return (
+    <form onSubmit={async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.currentTarget);
+      const data = Object.fromEntries(formData.entries());
+      
+      let audio_data = null;
+      if (audioBlob) {
+        audio_data = await blobToBase64(audioBlob);
+      }
+
+      onSave({
+        ...data,
+        type: audioBlob ? 'voice' : 'text',
+        audio_data,
+        attachments
+      });
+    }} className="space-y-6">
+      <Input name="title" placeholder="Title (Optional)" defaultValue={editingThought?.title || ''} />
+      <div className="relative group">
+        <TextArea name="text" placeholder="What's on your mind?" required defaultValue={editingThought?.text || ''} className="min-h-[200px] pb-16" />
+        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+          <div className="flex gap-2">
+            <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileChange} />
+            <button 
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="p-2.5 bg-surface border border-border rounded-xl text-ink-muted hover:text-accent hover:border-accent transition-all"
+              title="Attach File"
+            >
+              <Paperclip size={18} />
+            </button>
+            <button 
+              type="button"
+              onClick={() => {
+                promptAction('Add Link', 'Enter the URL for the link attachment:', 'https://...', (url) => {
+                  setAttachments(prev => [...prev, {
+                    id: Math.random().toString(36).substring(7),
+                    name: url,
+                    type: 'link',
+                    data: url,
+                    size: 0
+                  }]);
+                });
+              }}
+              className="p-2.5 bg-surface border border-border rounded-xl text-ink-muted hover:text-accent hover:border-accent transition-all"
+              title="Add Link"
+            >
+              <LinkIcon size={18} />
+            </button>
+          </div>
+          <div className="flex gap-2">
+            {isRecording ? (
+              <button type="button" onClick={stopRecording} className="p-2.5 bg-red-500 text-white rounded-xl animate-pulse">
+                <Square size={18} />
+              </button>
+            ) : (
+              <button type="button" onClick={startRecording} className="p-2.5 bg-surface text-accent rounded-xl hover:bg-border transition-colors border border-border">
+                <Mic size={18} />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {audioBlob && (
+        <div className="p-4 bg-accent/10 rounded-2xl flex items-center justify-between border border-accent/20">
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 rounded-full bg-accent animate-pulse" />
+            <span className="text-sm font-bold text-accent uppercase tracking-widest">Voice Note Recorded ({recordingTime}s)</span>
+          </div>
+          <button type="button" onClick={resetRecording} className="text-red-500 hover:text-red-600 p-2">
+            <Trash2 size={20} />
+          </button>
+        </div>
+      )}
+
+      {attachments.length > 0 && (
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Attachments</label>
+          <AttachmentList attachments={attachments} onRemove={(id) => setAttachments(prev => prev.filter(a => a.id !== id))} />
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Category</label>
+          <select name="category_id" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors" defaultValue={editingThought?.category_id || ''}>
+            <option value="">Uncategorized</option>
+            {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1 flex items-center gap-2">
+            <Lock size={10} className="text-accent" /> Unlock Date (Time Capsule)
+          </label>
+          <div className="relative">
+            <Input name="unlock_at" type="date" className="pl-10" defaultValue={editingThought?.unlock_at ? format(parseISO(editingThought.unlock_at), 'yyyy-MM-dd') : ''} />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-accent">
+              <Calendar size={16} />
+            </div>
+          </div>
+          <p className="text-[9px] text-ink-muted italic ml-1">Seal this thought until a future date. It will be hidden until then.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6">
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Tags</label>
+          <Input name="tags" placeholder="philosophy, ideas" defaultValue={editingThought?.tags || ''} />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Link to Thought</label>
+        <select name="parent_id" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors" defaultValue={editingThought?.parent_id || ''}>
+          <option value="">None</option>
+          {thoughts.filter((t: any) => t.id !== editingThought?.id).map((t: any) => (
+            <option key={t.id} value={t.id}>{t.title || t.text.substring(0, 30)}...</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Link to Document</label>
+        <select name="document_id" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors">
+          <option value="">None</option>
+          {documents.map((d: any) => (
+            <option key={d.id} value={d.id}>{d.title}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="pt-6">
+        <Button type="submit" className="w-full py-4 text-lg">Save Thought</Button>
+      </div>
+    </form>
+  );
+};
 
 // --- Main App ---
 
@@ -352,6 +643,11 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   const [isBackupPromptOpen, setIsBackupPromptOpen] = useState(false);
+  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
+  const [toasts, setToasts] = useState<{ id: number, message: string, type: 'success' | 'error' | 'info' }[]>([]);
+  const [confirmConfig, setConfirmConfig] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void } | null>(null);
+  const [promptConfig, setPromptConfig] = useState<{ isOpen: boolean, title: string, message: string, placeholder: string, onConfirm: (val: string) => void } | null>(null);
+  const [userName, setUserName] = useState(localStorage.getItem('user_name') || '');
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [navHistory, setNavHistory] = useState<string[]>(['home']);
   const [capsules, setCapsules] = useState<Thought[]>([]);
@@ -360,12 +656,26 @@ export default function App() {
   const [activeDocument, setActiveDocument] = useState<Document | null>(null);
   const [isDocumentEditorOpen, setIsDocumentEditorOpen] = useState(false);
   const [isCreateDocumentModalOpen, setIsCreateDocumentModalOpen] = useState(false);
-
+  const [isLinkThoughtModalOpen, setIsLinkThoughtModalOpen] = useState(false);
   const [editingThought, setEditingThought] = useState<Thought | null>(null);
-  const [editingPurposeId, setEditingPurposeId] = useState<number | null>(null);
-  const [editingQuestionId, setEditingQuestionId] = useState<number | null>(null);
 
-  const { isRecording, audioBlob, recordingTime, startRecording, stopRecording, resetRecording, blobToBase64 } = useVoiceRecorder();
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, 5000);
+  };
+
+  const confirmAction = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmConfig({ isOpen: true, title, message, onConfirm: () => { onConfirm(); setConfirmConfig(null); } });
+  };
+
+  const promptAction = (title: string, message: string, placeholder: string, onConfirm: (val: string) => void) => {
+    setPromptConfig({ isOpen: true, title, message, placeholder, onConfirm: (val: string) => { onConfirm(val); setPromptConfig(null); } });
+  };
+
+  const { isRecording, audioBlob, recordingTime, startRecording, stopRecording, resetRecording, blobToBase64 } = useVoiceRecorder(showToast);
 
   const wisdomScore = useMemo(() => {
     return (thoughts.length * 1) + (questions.length * 2) + (purposes.length * 5) + (documents.length * 10);
@@ -378,6 +688,63 @@ export default function App() {
     if (wisdomScore < 600) return { title: 'Darshanik', desc: 'The Philosopher' };
     return { title: 'Rishi', desc: 'The Sage' };
   }, [wisdomScore]);
+
+  // Notification System
+  useEffect(() => {
+    if (!("Notification" in window)) return;
+
+    if (Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    const checkNotifications = () => {
+      const now = new Date();
+      
+      // 1. Daily Reflection (8 PM)
+      const lastDaily = localStorage.getItem('last_daily_notif');
+      const todayStr = now.toDateString();
+      if (now.getHours() === 20 && lastDaily !== todayStr) {
+        new Notification("Thought Shaastra", {
+          body: "Time for your daily reflection. What's on your mind?",
+          icon: "/favicon.png"
+        });
+        localStorage.setItem('last_daily_notif', todayStr);
+      }
+
+      // 2. Time Capsules
+      capsules.forEach(capsule => {
+        if (capsule.unlock_at) {
+          const unlockDate = new Date(capsule.unlock_at);
+          const lastCheck = localStorage.getItem(`notif_capsule_${capsule.id}`);
+          if (now >= unlockDate && !lastCheck) {
+            new Notification("Time Capsule Unlocked", {
+              body: `Your thought from ${formatDate(capsule.created_at)} is ready to be revisited.`,
+              icon: "/favicon.png"
+            });
+            localStorage.setItem(`notif_capsule_${capsule.id}`, 'sent');
+          }
+        }
+      });
+      // 3. Inactivity Notification (7 days)
+      const lastActivity = localStorage.getItem('last_activity_timestamp');
+      if (lastActivity) {
+        const lastDate = new Date(parseInt(lastActivity));
+        const diffDays = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+        const lastInactivityNotif = localStorage.getItem('last_inactivity_notif');
+        
+        if (diffDays >= 7 && lastInactivityNotif !== todayStr) {
+          new Notification("Thought Shaastra", {
+            body: "Your sanctuary has been quiet for a week. Your thoughts miss your presence. Shall we reflect on your journey today?",
+            icon: "/favicon.png"
+          });
+          localStorage.setItem('last_inactivity_notif', todayStr);
+        }
+      }
+    };
+
+    const interval = setInterval(checkNotifications, 60000); // Check every minute
+    return () => clearInterval(interval);
+  }, [capsules]);
 
   const changeTab = (tabId: string) => {
     if (tabId !== activeTab) {
@@ -400,34 +767,59 @@ export default function App() {
   // Fetch Data
   const fetchData = async () => {
     try {
-      const [thoughtsRes, categoriesRes, purposeRes, statsRes, questionsRes, userRes, capsulesRes, activityRes, docsRes] = await Promise.all([
-        fetch('/api/thoughts'),
-        fetch('/api/categories'),
-        fetch('/api/purpose'),
-        fetch('/api/stats'),
-        fetch('/api/questions'),
-        fetch('/api/auth/me'),
-        fetch('/api/time-capsules'),
-        fetch('/api/insights/activity'),
-        fetch('/api/documents')
-      ]);
+      const endpoints = [
+        '/api/thoughts',
+        '/api/categories',
+        '/api/purpose',
+        '/api/stats',
+        '/api/questions',
+        '/api/auth/me',
+        '/api/time-capsules',
+        '/api/insights/activity',
+        '/api/documents'
+      ];
+
+      const responses = await Promise.all(endpoints.map(url => fetch(url)));
       
-      if (userRes.ok) setUser(await userRes.json());
+      const results = await Promise.all(responses.map(async (res) => {
+        if (!res.ok) return null;
+        try {
+          const text = await res.text();
+          return text ? JSON.parse(text) : null;
+        } catch (e) {
+          console.error(`Error parsing JSON from ${res.url}:`, e);
+          return null;
+        }
+      }));
+
+      const [
+        serverThoughts, 
+        categoriesData, 
+        purposesData, 
+        statsData, 
+        questionsData, 
+        userData, 
+        capsulesData, 
+        activityData, 
+        docsData
+      ] = results;
+
+      if (userData) setUser(userData);
       
-      const serverThoughts = await thoughtsRes.json();
-      const localThoughts = JSON.parse(localStorage.getItem('guest_thoughts') || '[]');
-      setThoughts([...serverThoughts, ...localThoughts].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+      if (serverThoughts) {
+        const localThoughts = JSON.parse(localStorage.getItem('guest_thoughts') || '[]');
+        setThoughts([...serverThoughts, ...localThoughts].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+      }
       
-      setCategories(await categoriesRes.json());
-      setPurposes(await purposeRes.json());
-      setStats(await statsRes.json());
-      setQuestions(await questionsRes.json());
-      setCapsules(await capsulesRes.json());
-      setActivityData(await activityRes.json());
-      setDocuments(await docsRes.json());
+      if (categoriesData) setCategories(categoriesData);
+      if (purposesData) setPurposes(purposesData);
+      if (statsData) setStats(statsData);
+      if (questionsData) setQuestions(questionsData);
+      if (capsulesData) setCapsules(capsulesData);
+      if (activityData) setActivityData(activityData);
+      if (docsData) setDocuments(docsData);
     } catch (error) {
       console.error('Error fetching data:', error);
-      // Fallback to local storage if offline or server error
       const localThoughts = JSON.parse(localStorage.getItem('guest_thoughts') || '[]');
       setThoughts(localThoughts);
     }
@@ -439,6 +831,9 @@ export default function App() {
     if (isFirstTime) {
       setIsWelcomeOpen(true);
       localStorage.setItem('has_visited', 'true');
+    }
+    if (!localStorage.getItem('user_name') && !user) {
+      setIsNameModalOpen(true);
     }
   }, []);
 
@@ -474,47 +869,72 @@ export default function App() {
   };
 
   const handleSaveThought = async (thoughtData: any) => {
+    localStorage.setItem('last_activity_timestamp', Date.now().toString());
     const payload = {
       ...thoughtData,
       unlock_at: thoughtData.unlock_at ? new Date(thoughtData.unlock_at).toISOString() : null,
-      is_private: parseInt(thoughtData.is_private) || 0
+      is_private: 1,
+      attachments: thoughtData.attachments ? JSON.stringify(thoughtData.attachments) : null
     };
 
     if (user) {
-      const res = await fetch('/api/thoughts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        const savedThought = await res.json();
-        if (payload.parent_id) {
-          await fetch('/api/connections', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ thought_a_id: payload.parent_id, thought_b_id: savedThought.id })
-          });
+      if (editingThought) {
+        const res = await fetch(`/api/thoughts/${editingThought.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          fetchData();
+          setIsWriting(false);
+          setEditingThought(null);
         }
-        if (payload.document_id) {
-          await fetch(`/api/documents/${payload.document_id}/link/${savedThought.id}`, {
-            method: 'POST'
-          });
+      } else {
+        const res = await fetch('/api/thoughts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const savedThought = await res.json();
+          if (savedThought && savedThought.id) {
+            if (payload.parent_id) {
+              await fetch('/api/connections', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ thought_a_id: payload.parent_id, thought_b_id: savedThought.id })
+              });
+            }
+            if (payload.document_id) {
+              await fetch(`/api/documents/${payload.document_id}/link/${savedThought.id}`, {
+                method: 'POST'
+              });
+            }
+          }
+          fetchData();
+          setIsWriting(false);
+          setEditingThought(null);
         }
-        fetchData();
-        setIsWriting(false);
-        setEditingThought(null);
       }
     } else {
       const newThought = {
         ...payload,
-        id: Date.now(),
-        created_at: new Date().toISOString(),
+        id: editingThought?.id || Date.now(),
+        created_at: editingThought?.created_at || new Date().toISOString(),
         category_name: categories.find(c => c.id === parseInt(payload.category_id))?.name || 'Uncategorized'
       };
-      const local = JSON.parse(localStorage.getItem('guest_thoughts') || '[]');
-      localStorage.setItem('guest_thoughts', JSON.stringify([newThought, ...local]));
       
-      if (payload.parent_id) {
+      const local = JSON.parse(localStorage.getItem('guest_thoughts') || '[]');
+      if (editingThought) {
+        const index = local.findIndex((t: any) => t.id === editingThought.id);
+        if (index !== -1) local[index] = newThought;
+      } else {
+        local.unshift(newThought);
+      }
+      
+      localStorage.setItem('guest_thoughts', JSON.stringify(local));
+      
+      if (payload.parent_id && !editingThought) {
         const localConnections = JSON.parse(localStorage.getItem('guest_connections') || '[]');
         localStorage.setItem('guest_connections', JSON.stringify([{ id: Date.now(), thought_a_id: payload.parent_id, thought_b_id: newThought.id }, ...localConnections]));
       }
@@ -539,11 +959,14 @@ export default function App() {
     
     if (res.ok) {
       const userData = await res.json();
-      setUser(userData);
-      setIsAuthModalOpen(false);
-      handleSync();
+      if (userData) {
+        setUser(userData);
+        setIsAuthModalOpen(false);
+        handleSync();
+        showToast('Welcome to your sanctuary', 'success');
+      }
     } else {
-      alert('Authentication failed');
+      showToast('Authentication failed. Please check your credentials.', 'error');
     }
   };
 
@@ -639,6 +1062,10 @@ export default function App() {
         </div>
         
         <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <button onClick={() => changeTab('capsule')} className="hidden md:flex items-center gap-2 px-4 py-2 bg-surface border border-border rounded-xl text-ink-muted hover:text-accent transition-all">
+            <Lock size={14} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">Time Capsules</span>
+          </button>
           <div className="hidden lg:flex flex-col items-end mr-4">
             <span className="text-[10px] font-bold text-accent uppercase tracking-[0.2em]">Current Session</span>
             <span className="text-xs font-serif italic text-ink-muted">{format(new Date(), 'MMMM do, yyyy')}</span>
@@ -689,9 +1116,11 @@ export default function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {documents.map(doc => (
                   <Card key={doc.id} className="group hover:border-accent transition-all cursor-pointer p-8" onClick={() => {
-                    fetch(`/api/documents/${doc.id}`).then(res => res.json()).then(data => {
-                      setActiveDocument(data);
-                      setIsDocumentEditorOpen(true);
+                    fetch(`/api/documents/${doc.id}`).then(res => res.ok ? res.json() : null).then(data => {
+                      if (data) {
+                        setActiveDocument(data);
+                        setIsDocumentEditorOpen(true);
+                      }
                     });
                   }}>
                     <div className="flex justify-between items-start mb-6">
@@ -701,9 +1130,9 @@ export default function App() {
                       <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={(e) => {
                           e.stopPropagation();
-                          if (confirm('Delete document?')) {
+                          confirmAction('Delete Document', 'Are you sure you want to delete this document?', () => {
                             fetch(`/api/documents/${doc.id}`, { method: 'DELETE' }).then(() => fetchData());
-                          }
+                          });
                         }} className="p-2 text-ink-muted hover:text-red-500 rounded-lg">
                           <Trash2 size={16} />
                         </button>
@@ -787,11 +1216,14 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }} 
               exit={{ opacity: 0, y: -20 }} 
               key="home" 
-              className="space-y-32 pb-20"
+              className="space-y-24 pb-20"
             >
               {/* Hero Section */}
-              <section className="text-center space-y-12 pt-12">
+              <section className="text-center space-y-12 pt-8">
                 <div className="space-y-6">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/20 rounded-full text-accent text-xs font-bold uppercase tracking-widest">
+                    <Flower2 size={14} /> Welcome back to your sanctuary, {userName || 'Seeker'}
+                  </div>
                   <h2 className="text-5xl sm:text-7xl lg:text-9xl font-black tracking-tighter text-ink leading-tight">
                     Build a system for <br />
                     <span className="text-accent italic font-serif">your thoughts.</span>
@@ -810,14 +1242,137 @@ export default function App() {
                   </Button>
                   <Button 
                     variant="outline"
-                    onClick={() => {
-                      const el = document.getElementById('how-it-works');
-                      el?.scrollIntoView({ behavior: 'smooth' });
-                    }}
+                    onClick={() => changeTab('timeline')}
                     className="w-full sm:w-auto h-20 px-12 rounded-3xl text-xl font-bold border-border/50 hover:bg-surface transition-all"
                   >
-                    Explore the System
+                    View Your Timeline
                   </Button>
+                </div>
+              </section>
+
+              {/* Quick Stats & Daily Prompt */}
+              <section className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+                <Card className="p-8 bg-surface border-border flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
+                    <Calendar size={32} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">Current Streak</p>
+                    <h4 className="text-3xl font-black text-ink">{streak} Days</h4>
+                  </div>
+                </Card>
+                <Card className="p-8 bg-surface border-border flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
+                    <Flower2 size={32} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">Wisdom Level</p>
+                    <h4 className="text-3xl font-black text-ink">{wisdomLevel.title}</h4>
+                  </div>
+                </Card>
+                <Card className="p-8 bg-accent text-bg flex items-center gap-6 cursor-pointer hover:scale-105 transition-all" onClick={() => setIsWriting(true)}>
+                  <div className="w-16 h-16 rounded-2xl bg-bg/20 flex items-center justify-center text-bg">
+                    <Feather size={32} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-bg/60">Daily Prompt</p>
+                    <h4 className="text-xl font-bold">What are you thinking today?</h4>
+                  </div>
+                </Card>
+              </section>
+
+              {/* Feature Grouping Section - MOVED UP */}
+              <section className="max-w-6xl mx-auto px-6 space-y-16">
+                <div className="text-center space-y-4">
+                  <h3 className="text-4xl font-black text-ink">The Layers of Thought</h3>
+                  <p className="text-ink-muted text-lg">Every module serves a specific purpose in your system.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {/* CAPTURE */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-500">
+                        <Mic size={16} />
+                      </div>
+                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Capture</h4>
+                    </div>
+                    <div className="space-y-4">
+                      <button onClick={() => changeTab('timeline')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Timeline</h5>
+                        <p className="text-xs text-ink-muted mt-1">Quick thoughts and daily reflections.</p>
+                      </button>
+                      <button onClick={() => changeTab('questions')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Questions</h5>
+                        <p className="text-xs text-ink-muted mt-1">Structured thinking prompts to spark curiosity.</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* DEVELOP */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-500">
+                        <BookOpen size={16} />
+                      </div>
+                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Develop</h4>
+                    </div>
+                    <div className="space-y-4">
+                      <button onClick={() => changeTab('documents')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Documents</h5>
+                        <p className="text-xs text-ink-muted mt-1">Long-form thinking and detailed research.</p>
+                      </button>
+                      <button onClick={() => changeTab('graph')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Connections</h5>
+                        <p className="text-xs text-ink-muted mt-1">Visualise how your ideas link together.</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* REFLECT */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-500">
+                        <Lock size={16} />
+                      </div>
+                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Reflect</h4>
+                    </div>
+                    <div className="space-y-4">
+                      <button onClick={() => changeTab('capsule')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Time Capsules</h5>
+                        <p className="text-xs text-ink-muted mt-1">Lock thoughts for your future self to unlock.</p>
+                      </button>
+                      <button onClick={() => changeTab('insights')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Insights</h5>
+                        <p className="text-xs text-ink-muted mt-1">Patterns and progress in your thinking.</p>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Recent Thoughts Section */}
+              <section className="max-w-6xl mx-auto px-6 space-y-12">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-3xl font-black text-ink">Recent Sutras</h3>
+                  <button onClick={() => changeTab('timeline')} className="text-accent font-bold text-sm hover:underline">View All</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {thoughts.slice(0, 3).map(thought => (
+                    <Card key={thought.id} className="p-6 space-y-4 hover:border-accent transition-all cursor-pointer" onClick={() => { setEditingThought(thought); setIsWriting(true); }}>
+                      <div className="flex justify-between items-start">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-accent">{thought.category_name || 'Uncategorized'}</span>
+                        <span className="text-[10px] text-ink-muted">{formatDate(thought.created_at)}</span>
+                      </div>
+                      <h4 className="font-bold text-ink line-clamp-1">{thought.title || 'Untitled Thought'}</h4>
+                      <p className="text-sm text-ink-muted line-clamp-3 leading-relaxed">{thought.text}</p>
+                    </Card>
+                  ))}
+                  {thoughts.length === 0 && (
+                    <div className="col-span-full py-12 text-center border-2 border-dashed border-border rounded-3xl">
+                      <p className="text-ink-muted">Your timeline is empty. Start by capturing your first thought.</p>
+                    </div>
+                  )}
                 </div>
               </section>
 
@@ -876,8 +1431,8 @@ export default function App() {
                 </div>
 
                 <div className="relative">
-                  <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-px bg-border -translate-y-1/2 z-0" />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8 relative z-10">
+                  <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-px bg-accent/20 -translate-y-1/2 z-0" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8 relative z-10">
                     {[
                       { label: 'Capture', desc: 'Timeline & Questions', icon: Mic, term: 'Sutra' },
                       { label: 'Expand', desc: 'Long-form Documents', icon: BookOpen, term: 'Grantha' },
@@ -886,119 +1441,24 @@ export default function App() {
                       { label: 'Reflect', desc: 'Future Time Capsules', icon: Lock, term: 'Kala' },
                       { label: 'Evolve', desc: 'A Lifetime of Wisdom', icon: Sunrise, term: 'Moksha' },
                     ].map((step, idx) => (
-                      <div key={idx} className="flex flex-col items-center text-center space-y-4">
-                        <div className="w-16 h-16 rounded-full bg-surface border border-border flex items-center justify-center text-accent shadow-xl">
-                          <step.icon size={24} />
+                      <div key={idx} className="flex flex-col items-center text-center space-y-6 group">
+                        <div className="relative">
+                          <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-accent text-bg text-[10px] font-bold flex items-center justify-center z-20 border-2 border-surface">
+                            {idx + 1}
+                          </div>
+                          <div className="w-20 h-20 rounded-2xl bg-surface border border-border flex items-center justify-center text-accent shadow-xl group-hover:border-accent group-hover:shadow-accent/20 transition-all duration-500 relative z-10">
+                            <step.icon size={28} />
+                          </div>
                         </div>
-                        <div>
-                          <h5 className="font-bold text-ink">{step.label}</h5>
-                          <p className="text-[10px] text-accent font-bold uppercase tracking-widest">{step.term}</p>
-                          <p className="text-[10px] text-ink-muted mt-1">{step.desc}</p>
+                        <div className="space-y-2">
+                          <h5 className="font-bold text-ink group-hover:text-accent transition-colors">{step.label}</h5>
+                          <div className="inline-block px-3 py-1 rounded-full bg-accent/10 border border-accent/20">
+                            <p className="text-[10px] text-accent font-bold uppercase tracking-widest">{step.term}</p>
+                          </div>
+                          <p className="text-[10px] text-ink-muted leading-relaxed">{step.desc}</p>
                         </div>
                       </div>
                     ))}
-                  </div>
-                </div>
-              </section>
-
-              {/* Feature Grouping Section */}
-              <section className="max-w-6xl mx-auto px-6 space-y-16">
-                <div className="text-center space-y-4">
-                  <h3 className="text-4xl font-black text-ink">The Layers of Thought</h3>
-                  <p className="text-ink-muted text-lg">Every module serves a specific purpose in your system.</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {/* CAPTURE */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-500">
-                        <Mic size={16} />
-                      </div>
-                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Capture</h4>
-                    </div>
-                    <div className="space-y-4">
-                      <button onClick={() => changeTab('timeline')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Timeline</h5>
-                        <p className="text-xs text-ink-muted mt-1">Quick thoughts and daily reflections.</p>
-                      </button>
-                      <button onClick={() => changeTab('questions')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Questions</h5>
-                        <p className="text-xs text-ink-muted mt-1">Structured thinking prompts to spark curiosity.</p>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* DEVELOP */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-500">
-                        <BookOpen size={16} />
-                      </div>
-                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Develop</h4>
-                    </div>
-                    <div className="space-y-4">
-                      <button onClick={() => changeTab('documents')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Documents</h5>
-                        <p className="text-xs text-ink-muted mt-1">Long-form thinking and detailed research.</p>
-                      </button>
-                      <button onClick={() => changeTab('graph')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Insights</h5>
-                        <p className="text-xs text-ink-muted mt-1">Key realizations and data-driven patterns.</p>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* DEFINE */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-500">
-                        <Target size={16} />
-                      </div>
-                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Define</h4>
-                    </div>
-                    <div className="space-y-4">
-                      <button onClick={() => changeTab('purpose')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Principles</h5>
-                        <p className="text-xs text-ink-muted mt-1">Core beliefs and rules you live by.</p>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* ORGANIZE */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-500">
-                        <Hash size={16} />
-                      </div>
-                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Organize</h4>
-                    </div>
-                    <div className="space-y-4">
-                      <button onClick={() => changeTab('categories')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Categories</h5>
-                        <p className="text-xs text-ink-muted mt-1">A grouping system for your mental map.</p>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* REFLECT */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-500">
-                        <Lock size={16} />
-                      </div>
-                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Reflect</h4>
-                    </div>
-                    <div className="space-y-4">
-                      <button onClick={() => changeTab('capsule')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Time Capsules</h5>
-                        <p className="text-xs text-ink-muted mt-1">Write messages to your future self.</p>
-                      </button>
-                      <button onClick={() => changeTab('book')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Archive</h5>
-                        <p className="text-xs text-ink-muted mt-1">Store inactive ideas without the clutter.</p>
-                      </button>
-                    </div>
                   </div>
                 </div>
               </section>
@@ -1125,7 +1585,7 @@ export default function App() {
                                 </button>
                                 <button 
                                   onClick={async () => {
-                                    if (confirm('Convert this thought into a long-form Document?')) {
+                                    confirmAction('Convert to Document', 'Convert this thought into a long-form Document?', async () => {
                                       const res = await fetch('/api/documents', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
@@ -1137,11 +1597,14 @@ export default function App() {
                                       });
                                       if (res.ok) {
                                         const data = await res.json();
-                                        await fetch(`/api/documents/${data.id}/link/${thought.id}`, { method: 'POST' });
-                                        fetchData();
-                                        changeTab('documents');
+                                        if (data && data.id) {
+                                          await fetch(`/api/documents/${data.id}/link/${thought.id}`, { method: 'POST' });
+                                          fetchData();
+                                          changeTab('documents');
+                                          showToast('Converted to document', 'success');
+                                        }
                                       }
-                                    }
+                                    });
                                   }} 
                                   className="p-1.5 text-ink-muted hover:text-accent rounded-lg"
                                   title="Convert to Document"
@@ -1150,7 +1613,7 @@ export default function App() {
                                 </button>
                                 <button 
                                   onClick={async () => {
-                                    if (confirm('Convert this thought into a Core Principle?')) {
+                                    confirmAction('Convert to Principle', 'Convert this thought into a Core Principle?', async () => {
                                       await fetch('/api/purpose', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
@@ -1158,14 +1621,15 @@ export default function App() {
                                       });
                                       fetchData();
                                       changeTab('purpose');
-                                    }
+                                      showToast('Added to Core Principles', 'success');
+                                    });
                                   }} 
                                   className="p-1.5 text-ink-muted hover:text-accent rounded-lg"
                                   title="Convert to Principle"
                                 >
                                   <Target size={14} />
                                 </button>
-                                <button onClick={() => { navigator.clipboard.writeText(thought.text); alert('Copied'); }} className="p-1.5 text-ink-muted hover:text-accent rounded-lg" title="Copy">
+                                <button onClick={() => { navigator.clipboard.writeText(thought.text); showToast('Copied to clipboard', 'success'); }} className="p-1.5 text-ink-muted hover:text-accent rounded-lg" title="Copy">
                                   <Share2 size={14} />
                                 </button>
                               </div>
@@ -1321,11 +1785,12 @@ export default function App() {
                         <p className="text-xs text-slate-500">Permanently delete your account and all thoughts.</p>
                       </div>
                       <Button variant="danger" size="sm" onClick={async () => {
-                        if (confirm('Are you absolutely sure? This cannot be undone.')) {
+                        confirmAction('Delete Account', 'Are you absolutely sure? This cannot be undone.', async () => {
                           await fetch('/api/auth/account', { method: 'DELETE' });
                           setUser(null);
                           fetchData();
-                        }
+                          showToast('Account deleted', 'info');
+                        });
                       }}>Delete Account</Button>
                     </div>
                   </>
@@ -1345,7 +1810,7 @@ export default function App() {
                 <p className="text-ink-muted font-serif italic text-xl">Messages to your future self</p>
                 {unlockedCapsulesCount > 0 && (
                   <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-accent/20 text-accent rounded-full text-sm font-bold animate-bounce">
-                    <Sparkles size={16} /> {unlockedCapsulesCount} Capsules Unlocked!
+                    <Flower2 size={16} /> {unlockedCapsulesCount} Capsules Unlocked!
                   </div>
                 )}
               </div>
@@ -1580,7 +2045,13 @@ export default function App() {
                         <p className="text-2xl font-serif italic leading-relaxed text-ink">"{p.text}"</p>
                         {p.audio_data && <VoicePlayer audioData={p.audio_data} />}
                       </div>
-                      <button onClick={async () => { if (confirm('Delete?')) { await fetch(`/api/purpose/${p.id}`, { method: 'DELETE' }); fetchData(); } }} className="opacity-0 group-hover:opacity-100 p-2 text-ink-muted hover:text-red-500">
+                      <button onClick={async () => { 
+                        confirmAction('Delete Principle', 'Remove this principle from your sanctuary?', async () => {
+                          await fetch(`/api/purpose/${p.id}`, { method: 'DELETE' }); 
+                          fetchData(); 
+                          showToast('Principle removed', 'success');
+                        });
+                      }} className="opacity-0 group-hover:opacity-100 p-2 text-ink-muted hover:text-red-500">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -1616,6 +2087,7 @@ export default function App() {
                     )}
 
                     <Button className="w-full" onClick={async () => {
+                      localStorage.setItem('last_activity_timestamp', Date.now().toString());
                       const input = document.getElementById('new-purpose-text') as HTMLTextAreaElement;
                       const text = input.value;
                       if (text.trim() || audioBlob) {
@@ -1657,7 +2129,13 @@ export default function App() {
                         <p className="text-2xl font-serif leading-relaxed text-ink">{q.text}</p>
                         {q.audio_data && <VoicePlayer audioData={q.audio_data} />}
                       </div>
-                      <button onClick={async () => { if (confirm('Delete?')) { await fetch(`/api/questions/${q.id}`, { method: 'DELETE' }); fetchData(); } }} className="opacity-0 group-hover:opacity-100 p-2 text-ink-muted hover:text-red-500">
+                      <button onClick={async () => { 
+                        confirmAction('Delete Question', 'Remove this question from your sanctuary?', async () => {
+                          await fetch(`/api/questions/${q.id}`, { method: 'DELETE' }); 
+                          fetchData(); 
+                          showToast('Question removed', 'success');
+                        });
+                      }} className="opacity-0 group-hover:opacity-100 p-2 text-ink-muted hover:text-red-500">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -1693,6 +2171,7 @@ export default function App() {
                     )}
 
                     <Button className="w-full" onClick={async () => {
+                      localStorage.setItem('last_activity_timestamp', Date.now().toString());
                       const input = document.getElementById('new-question-text') as HTMLTextAreaElement;
                       const text = input.value;
                       if (text.trim() || audioBlob) {
@@ -1742,16 +2221,6 @@ export default function App() {
         </footer>
       </main>
 
-      {/* Floating Action Button (Mobile) */}
-      <div className="lg:hidden fixed bottom-8 right-8 z-40">
-        <button 
-          onClick={() => setIsWriting(true)}
-          className="w-16 h-16 bg-indigo-600 text-white rounded-full shadow-2xl shadow-indigo-600/40 flex items-center justify-center active:scale-90 transition-transform"
-        >
-          <Plus size={32} />
-        </button>
-      </div>
-
       {/* Document Editor Modal */}
       <AnimatePresence>
         {isDocumentEditorOpen && activeDocument && (
@@ -1776,7 +2245,7 @@ export default function App() {
                 <Button variant="ghost" size="sm" onClick={() => {
                   const text = activeDocument.sections?.map(s => `${s.title ? `${s.title}\n\n` : ''}${s.content}\n\n`).join('\n');
                   navigator.clipboard.writeText(`# ${activeDocument.title}\n\n${text}`);
-                  alert('Document copied to clipboard!');
+                  showToast('Document copied to clipboard', 'success');
                 }}>
                   <Share2 size={18} /> Share
                 </Button>
@@ -1836,11 +2305,16 @@ export default function App() {
                     <div key={section.id} className="group relative space-y-6">
                       <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity absolute -left-16 top-0">
                         <button onClick={() => {
-                          if (confirm('Delete section?')) {
-                            fetch(`/api/sections/${section.id}`, { method: 'DELETE' }).then(() => {
-                              fetch(`/api/documents/${activeDocument.id}`).then(res => res.json()).then(data => setActiveDocument(data));
+                          confirmAction('Delete Section', 'Remove this section from the document?', () => {
+                            fetch(`/api/sections/${section.id}`, { method: 'DELETE' }).then(res => {
+                              if (res.ok) {
+                                fetch(`/api/documents/${activeDocument.id}`).then(res => res.ok ? res.json() : null).then(data => {
+                                  if (data) setActiveDocument(data);
+                                });
+                                showToast('Section removed', 'success');
+                              }
                             });
-                          }
+                          });
                         }} className="p-3 text-border hover:text-red-500">
                           <Trash2 size={20} />
                         </button>
@@ -1893,8 +2367,12 @@ export default function App() {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ title: '', content: '', order_index: (activeDocument.sections?.length || 0) })
-                      }).then(() => {
-                        fetch(`/api/documents/${activeDocument.id}`).then(res => res.json()).then(data => setActiveDocument(data));
+                      }).then(res => {
+                        if (res.ok) {
+                          fetch(`/api/documents/${activeDocument.id}`).then(res => res.ok ? res.json() : null).then(data => {
+                            if (data) setActiveDocument(data);
+                          });
+                        }
                       });
                     }}
                     className="w-full py-12 border-2 border-dashed border-border rounded-[2rem] text-border hover:text-accent hover:border-accent transition-all flex flex-col items-center gap-4"
@@ -1919,8 +2397,12 @@ export default function App() {
                           </div>
                         </div>
                         <button onClick={() => {
-                          fetch(`/api/documents/${activeDocument.id}/link/${thought.id}`, { method: 'DELETE' }).then(() => {
-                            fetch(`/api/documents/${activeDocument.id}`).then(res => res.json()).then(data => setActiveDocument(data));
+                          fetch(`/api/documents/${activeDocument.id}/link/${thought.id}`, { method: 'DELETE' }).then(res => {
+                            if (res.ok) {
+                              fetch(`/api/documents/${activeDocument.id}`).then(res => res.ok ? res.json() : null).then(data => {
+                                if (data) setActiveDocument(data);
+                              });
+                            }
                           });
                         }} className="opacity-0 group-hover:opacity-100 p-3 text-border hover:text-red-500 transition-opacity">
                           <X size={20} />
@@ -1928,13 +2410,7 @@ export default function App() {
                       </Card>
                     ))}
                     <Button variant="outline" className="border-dashed py-6" onClick={() => {
-                      // Simple prompt for linking existing thoughts for now
-                      const thoughtId = prompt('Enter Thought ID to link (or select from list in future):');
-                      if (thoughtId) {
-                        fetch(`/api/documents/${activeDocument.id}/link/${thoughtId}`, { method: 'POST' }).then(() => {
-                          fetch(`/api/documents/${activeDocument.id}`).then(res => res.json()).then(data => setActiveDocument(data));
-                        });
-                      }
+                      setIsLinkThoughtModalOpen(true);
                     }}>
                       <LinkIcon size={18} /> Link Existing Thought
                     </Button>
@@ -1948,102 +2424,21 @@ export default function App() {
 
       {/* Write Modal */}
       <Modal isOpen={isWriting} onClose={() => { setIsWriting(false); setEditingThought(null); resetRecording(); }} title={editingThought ? "Edit Thought" : "Write a Thought"}>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const formData = new FormData(e.currentTarget);
-          const data = Object.fromEntries(formData.entries());
-          handleSaveThought({
-            ...data,
-            type: audioBlob ? 'voice' : 'text',
-            audio_data: audioBlob ? (e.currentTarget as any).audio_base64.value : null
-          });
-        }} className="space-y-6">
-          <Input name="title" placeholder="Title (Optional)" defaultValue={editingThought?.title || ''} />
-          <div className="relative">
-            <TextArea name="text" placeholder="What's on your mind?" required defaultValue={editingThought?.text || ''} className="min-h-[200px]" />
-            <div className="absolute bottom-4 right-4 flex gap-3">
-              {isRecording ? (
-                <button type="button" onClick={stopRecording} className="p-3 bg-red-500 text-white rounded-2xl animate-pulse">
-                  <Square size={20} />
-                </button>
-              ) : (
-                <button type="button" onClick={startRecording} className="p-3 bg-surface text-accent rounded-2xl hover:bg-border transition-colors border border-border">
-                  <Mic size={20} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {audioBlob && (
-            <div className="p-4 bg-accent/10 rounded-2xl flex items-center justify-between border border-accent/20">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-accent animate-pulse" />
-                <span className="text-sm font-bold text-accent uppercase tracking-widest">Voice Note Recorded ({recordingTime}s)</span>
-              </div>
-              <button type="button" onClick={resetRecording} className="text-red-500 hover:text-red-600 p-2">
-                <Trash2 size={20} />
-              </button>
-              <input type="hidden" name="audio_base64" id="audio_base64" />
-              {/* Convert blob to base64 and set to hidden input */}
-              {blobToBase64(audioBlob).then(b64 => {
-                const input = document.getElementById('audio_base64') as HTMLInputElement;
-                if (input) input.value = b64;
-              })}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Category</label>
-              <select name="category_id" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors" defaultValue={editingThought?.category_id || ''}>
-                <option value="">Uncategorized</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Unlock Date (Capsule)</label>
-              <Input name="unlock_at" type="date" defaultValue={editingThought?.unlock_at ? format(parseISO(editingThought.unlock_at), 'yyyy-MM-dd') : ''} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Tags</label>
-              <Input name="tags" placeholder="philosophy, ideas" defaultValue={editingThought?.tags || ''} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Privacy</label>
-              <select name="is_private" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors" defaultValue={editingThought?.is_private || 0}>
-                <option value={0}>Public</option>
-                <option value={1}>Private</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Link to Thought</label>
-            <select name="parent_id" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors" defaultValue={editingThought?.parent_id || ''}>
-              <option value="">None</option>
-              {thoughts.filter(t => t.id !== editingThought?.id).map(t => (
-                <option key={t.id} value={t.id}>{t.title || t.text.substring(0, 30)}...</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Link to Document</label>
-            <select name="document_id" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors">
-              <option value="">None</option>
-              {documents.map(d => (
-                <option key={d.id} value={d.id}>{d.title}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="pt-6">
-            <Button type="submit" className="w-full py-4 text-lg">Save Thought</Button>
-          </div>
-        </form>
+        <ThoughtEditor 
+          editingThought={editingThought}
+          categories={categories}
+          thoughts={thoughts}
+          documents={documents}
+          onSave={handleSaveThought}
+          isRecording={isRecording}
+          startRecording={startRecording}
+          stopRecording={stopRecording}
+          resetRecording={resetRecording}
+          audioBlob={audioBlob}
+          recordingTime={recordingTime}
+          blobToBase64={blobToBase64}
+          promptAction={promptAction}
+        />
       </Modal>
 
       {/* Create Document Modal */}
@@ -2055,7 +2450,7 @@ export default function App() {
           const description = formData.get('description') as string;
           const category_id = formData.get('category_id') as string;
           const templateId = formData.get('template') as string;
-          const is_private = formData.get('is_private') === '1';
+          const is_private = 1;
 
           const template = DOCUMENT_TEMPLATES.find(t => t.id === templateId) || DOCUMENT_TEMPLATES[0];
 
@@ -2073,12 +2468,18 @@ export default function App() {
 
           if (res.ok) {
             const data = await res.json();
-            fetchData();
-            const docRes = await fetch(`/api/documents/${data.id}`);
-            const doc = await docRes.json();
-            setActiveDocument(doc);
-            setIsCreateDocumentModalOpen(false);
-            setIsDocumentEditorOpen(true);
+            if (data && data.id) {
+              fetchData();
+              const docRes = await fetch(`/api/documents/${data.id}`);
+              if (docRes.ok) {
+                const doc = await docRes.json();
+                if (doc) {
+                  setActiveDocument(doc);
+                  setIsCreateDocumentModalOpen(false);
+                  setIsDocumentEditorOpen(true);
+                }
+              }
+            }
           }
         }} className="space-y-8">
           <div className="space-y-2">
@@ -2091,21 +2492,12 @@ export default function App() {
             <TextArea name="description" placeholder="What is this project about?" rows={3} />
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Category</label>
-              <select name="category_id" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors">
-                <option value="">Uncategorized</option>
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Privacy</label>
-              <select name="is_private" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors">
-                <option value="1">Private</option>
-                <option value="0">Public</option>
-              </select>
-            </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Category</label>
+            <select name="category_id" className="w-full px-4 py-3 rounded-2xl border border-border bg-surface text-ink text-sm outline-none focus:border-accent transition-colors">
+              <option value="">Uncategorized</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
           </div>
 
           <div className="space-y-4">
@@ -2126,7 +2518,7 @@ export default function App() {
       </Modal>
 
       {/* Auth Modal */}
-      <Modal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} title={authMode === 'login' ? "Welcome Back" : "Create Backup Account"}>
+      <Modal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} title={authMode === 'login' ? "Welcome Back to Your Sanctuary" : "Secure Your Wisdom"}>
         <form onSubmit={handleAuth} className="space-y-6">
           <div className="text-center mb-8">
             <div className="w-20 h-20 bg-surface rounded-3xl flex items-center justify-center text-accent border border-border mx-auto mb-6">
@@ -2167,24 +2559,48 @@ export default function App() {
       </Modal>
 
       {/* Welcome Modal */}
-      <Modal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} title="Welcome to Shaastra">
+      <Modal isOpen={isWelcomeOpen} onClose={() => setIsWelcomeOpen(false)} title="Welcome to Your Thought Sanctuary">
         <div className="text-center space-y-8 py-6">
           <div className="w-24 h-24 bg-accent text-bg rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl shadow-accent/40">
-            <Sunrise size={48} />
+            <Flower2 size={48} />
           </div>
           <div className="space-y-4">
-            <h3 className="text-3xl font-black text-ink leading-tight">Capture your thoughts before they disappear.</h3>
-            <p className="text-ink-muted font-serif italic text-xl">A digital sanctuary for your mind.</p>
+            <h3 className="text-3xl font-black text-ink leading-tight">Capture your wisdom before it fades.</h3>
+            <p className="text-ink-muted font-serif italic text-xl">"The unexamined life is not worth living."</p>
           </div>
           <div className="grid grid-cols-1 gap-4 pt-6">
             <Button className="py-5 text-xl" onClick={() => { setIsWelcomeOpen(false); setIsWriting(true); }}>
-              Write Your First Thought <ArrowRight size={24} className="ml-2" />
+              Begin Your First Reflection <ArrowRight size={24} className="ml-2" />
             </Button>
             <Button variant="ghost" className="text-ink-muted hover:text-ink" onClick={() => { setIsWelcomeOpen(false); setActiveTab('guide'); }}>
-              Learn How It Works
+              Explore the Shaastra Way
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal isOpen={isNameModalOpen} onClose={() => {}} title="How shall we address you, Seeker?">
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          const name = (e.currentTarget.elements.namedItem('name') as HTMLInputElement).value;
+          if (name) {
+            setUserName(name);
+            localStorage.setItem('user_name', name);
+            setIsNameModalOpen(false);
+          }
+        }} className="space-y-6">
+          <div className="text-center mb-8">
+            <div className="w-20 h-20 bg-surface rounded-3xl flex items-center justify-center text-accent border border-border mx-auto mb-6">
+              <UserPlus size={40} />
+            </div>
+            <p className="text-ink-muted text-sm leading-relaxed">We'll use this to personalize your thinking experience.</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted ml-1">Your Name</label>
+            <Input name="name" placeholder="Enter your name..." required autoFocus />
+          </div>
+          <Button type="submit" className="w-full py-4 mt-6">Continue</Button>
+        </form>
       </Modal>
 
       {/* Backup Prompt */}
@@ -2217,6 +2633,65 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Modal isOpen={isLinkThoughtModalOpen} onClose={() => setIsLinkThoughtModalOpen(false)} title="Link a Thought">
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+          {thoughts.filter(t => !activeDocument?.linkedThoughts?.some(lt => lt.id === t.id)).map(thought => (
+            <Card 
+              key={thought.id} 
+              className="p-4 cursor-pointer hover:border-accent transition-all flex items-center justify-between group"
+              onClick={() => {
+                if (activeDocument) {
+                  fetch(`/api/documents/${activeDocument.id}/link/${thought.id}`, { method: 'POST' }).then(res => {
+                    if (res.ok) {
+                      fetch(`/api/documents/${activeDocument.id}`).then(res => res.ok ? res.json() : null).then(data => {
+                        if (data) setActiveDocument(data);
+                      });
+                      setIsLinkThoughtModalOpen(false);
+                      showToast('Thought linked', 'success');
+                    }
+                  });
+                }
+              }}
+            >
+              <div className="flex-1">
+                <p className="font-bold text-ink truncate">{thought.title || thought.text.substring(0, 50)}...</p>
+                <p className="text-[10px] text-ink-muted uppercase tracking-widest">{formatDate(thought.created_at)}</p>
+              </div>
+              <Plus size={16} className="text-border group-hover:text-accent" />
+            </Card>
+          ))}
+          {thoughts.length === 0 && <p className="text-center py-8 text-ink-muted italic">No thoughts available to link.</p>}
+        </div>
+      </Modal>
+
+      {/* Global Systems */}
+      <AnimatePresence>
+        {toasts.map(toast => (
+          <Toast key={toast.id} {...toast} onClose={() => setToasts(prev => prev.filter(t => t.id !== toast.id))} />
+        ))}
+      </AnimatePresence>
+
+      {confirmConfig && (
+        <ConfirmDialog 
+          isOpen={confirmConfig.isOpen}
+          title={confirmConfig.title}
+          message={confirmConfig.message}
+          onConfirm={confirmConfig.onConfirm}
+          onCancel={() => setConfirmConfig(null)}
+        />
+      )}
+
+      {promptConfig && (
+        <PromptDialog 
+          isOpen={promptConfig.isOpen}
+          title={promptConfig.title}
+          message={promptConfig.message}
+          placeholder={promptConfig.placeholder}
+          onConfirm={promptConfig.onConfirm}
+          onCancel={() => setPromptConfig(null)}
+        />
+      )}
     </div>
   );
 }

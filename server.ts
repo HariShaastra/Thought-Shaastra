@@ -46,6 +46,7 @@ db.exec(`
     is_private INTEGER DEFAULT 1,
     type TEXT DEFAULT 'text',
     audio_data TEXT,
+    attachments TEXT,
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (category_id) REFERENCES categories(id),
     FOREIGN KEY (parent_id) REFERENCES thoughts(id)
@@ -141,6 +142,7 @@ try { db.exec("ALTER TABLE questions ADD COLUMN audio_data TEXT"); } catch (e) {
 try { db.exec("ALTER TABLE purpose ADD COLUMN type TEXT DEFAULT 'text'"); } catch (e) {}
 try { db.exec("ALTER TABLE purpose ADD COLUMN audio_data TEXT"); } catch (e) {}
 try { db.exec("ALTER TABLE thoughts ADD COLUMN user_id INTEGER"); } catch (e) {}
+try { db.exec("ALTER TABLE thoughts ADD COLUMN attachments TEXT"); } catch (e) {}
 try { db.exec("ALTER TABLE categories ADD COLUMN user_id INTEGER"); } catch (e) {}
 try { db.exec("ALTER TABLE questions ADD COLUMN user_id INTEGER"); } catch (e) {}
 try { db.exec("ALTER TABLE reflections ADD COLUMN user_id INTEGER"); } catch (e) {}
@@ -202,7 +204,7 @@ async function startServer() {
 
   app.get("/api/auth/me", authenticate, (req: any, res) => {
     const user = db.prepare("SELECT id, email, name FROM users WHERE id = ?").get(req.user.id);
-    res.json(user);
+    res.json(user || null);
   });
 
   app.post("/api/auth/logout", (req, res) => {
@@ -240,9 +242,9 @@ async function startServer() {
       if (thoughts) {
         for (const t of thoughts) {
           db.prepare(`
-            INSERT INTO thoughts (user_id, title, text, tags, created_at, unlock_at, is_private, type, audio_data)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).run(userId, t.title, t.text, t.tags, t.created_at, t.unlock_at, t.is_private ? 1 : 0, t.type, t.audio_data);
+            INSERT INTO thoughts (user_id, title, text, tags, created_at, unlock_at, is_private, type, audio_data, attachments)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(userId, t.title, t.text, t.tags, t.created_at, t.unlock_at, t.is_private ? 1 : 0, t.type, t.audio_data, t.attachments);
         }
       }
       if (questions) {
@@ -276,21 +278,21 @@ async function startServer() {
 
   app.post("/api/thoughts", (req: any, res) => {
     const userId = getUserId(req);
-    const { title, text, category_id, tags, parent_id, unlock_at, is_private, type, audio_data } = req.body;
+    const { title, text, category_id, tags, parent_id, unlock_at, is_private, type, audio_data, attachments } = req.body;
     const info = db.prepare(`
-      INSERT INTO thoughts (user_id, title, text, category_id, tags, parent_id, unlock_at, is_private, type, audio_data)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(userId, title, text, category_id, tags, parent_id, unlock_at, is_private ? 1 : 0, type || 'text', audio_data);
+      INSERT INTO thoughts (user_id, title, text, category_id, tags, parent_id, unlock_at, is_private, type, audio_data, attachments)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(userId, title, text, category_id, tags, parent_id, unlock_at, is_private ? 1 : 0, type || 'text', audio_data, attachments);
     res.json({ id: info.lastInsertRowid });
   });
 
   app.put("/api/thoughts/:id", (req: any, res) => {
-    const { title, text, category_id, tags, is_private, type, audio_data } = req.body;
+    const { title, text, category_id, tags, is_private, type, audio_data, attachments } = req.body;
     db.prepare(`
       UPDATE thoughts 
-      SET title = ?, text = ?, category_id = ?, tags = ?, is_private = ?, type = ?, audio_data = ?, updated_at = CURRENT_TIMESTAMP 
+      SET title = ?, text = ?, category_id = ?, tags = ?, is_private = ?, type = ?, audio_data = ?, attachments = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE id = ?
-    `).run(title, text, category_id, tags, is_private ? 1 : 0, type, audio_data, req.params.id);
+    `).run(title, text, category_id, tags, is_private ? 1 : 0, type, audio_data, attachments, req.params.id);
     res.json({ success: true });
   });
 
@@ -532,18 +534,6 @@ async function startServer() {
       LIMIT 30
     `).all(userId, userId);
     res.json(activity);
-  });
-
-  app.get("/api/time-capsules", (req: any, res) => {
-    const userId = getUserId(req);
-    const capsules = db.prepare(`
-      SELECT t.*, c.name as category_name
-      FROM thoughts t
-      LEFT JOIN categories c ON t.category_id = c.id
-      WHERE (t.user_id = ? OR (t.user_id IS NULL AND ? IS NULL)) AND t.unlock_at IS NOT NULL
-      ORDER BY t.unlock_at ASC
-    `).all(userId, userId);
-    res.json(capsules);
   });
 
   // Vite middleware for development

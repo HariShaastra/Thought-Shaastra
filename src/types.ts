@@ -11,6 +11,14 @@ export interface Category {
   is_default: number;
 }
 
+export interface Attachment {
+  id: string;
+  name: string;
+  type: string;
+  data: string; // base64
+  size: number;
+}
+
 export interface Thought {
   id: number;
   user_id: number | null;
@@ -26,6 +34,7 @@ export interface Thought {
   is_private: number;
   type: 'text' | 'voice';
   audio_data: string | null;
+  attachments: string | null; // JSON string of Attachment[]
 }
 
 export interface Question {
