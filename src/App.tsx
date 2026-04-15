@@ -367,10 +367,23 @@ export default function App() {
 
   const { isRecording, audioBlob, recordingTime, startRecording, stopRecording, resetRecording, blobToBase64 } = useVoiceRecorder();
 
+  const wisdomScore = useMemo(() => {
+    return (thoughts.length * 1) + (questions.length * 2) + (purposes.length * 5) + (documents.length * 10);
+  }, [thoughts, questions, purposes, documents]);
+
+  const wisdomLevel = useMemo(() => {
+    if (wisdomScore < 50) return { title: 'Sadhaka', desc: 'The Seeker' };
+    if (wisdomScore < 150) return { title: 'Jigyasu', desc: 'The Curious' };
+    if (wisdomScore < 300) return { title: 'Vicharak', desc: 'The Thinker' };
+    if (wisdomScore < 600) return { title: 'Darshanik', desc: 'The Philosopher' };
+    return { title: 'Rishi', desc: 'The Sage' };
+  }, [wisdomScore]);
+
   const changeTab = (tabId: string) => {
     if (tabId !== activeTab) {
       setNavHistory(prev => [...prev, tabId]);
       setActiveTab(tabId);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -633,6 +646,10 @@ export default function App() {
           
           {user ? (
             <div className="flex items-center gap-2 sm:gap-4 pl-2 sm:pl-4 border-l border-border">
+              <div className="flex flex-col items-end mr-2 hidden sm:flex">
+                <span className="text-[10px] font-bold text-accent uppercase tracking-widest">{wisdomLevel.title}</span>
+                <span className="text-[8px] text-ink-muted uppercase tracking-tighter">{wisdomScore} Wisdom Points</span>
+              </div>
               <div className="flex flex-col items-end max-w-[80px] sm:max-w-[150px]">
                 <p className="text-[10px] sm:text-sm font-bold text-ink truncate w-full text-right">{user.name || user.email}</p>
                 <button onClick={handleLogout} className="text-[8px] sm:text-[10px] text-ink-muted hover:text-red-400 font-bold uppercase tracking-widest transition-colors">
@@ -770,85 +787,255 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }} 
               exit={{ opacity: 0, y: -20 }} 
               key="home" 
-              className="space-y-16"
+              className="space-y-32 pb-20"
             >
-              <div className="text-center space-y-6">
-                <h2 className="text-3xl sm:text-6xl lg:text-8xl font-black tracking-tighter text-ink break-words">
-                  Welcome to <span className="text-accent italic font-serif">Shaastra</span>
-                </h2>
-                <div className="max-w-4xl mx-auto">
-                  <p className="text-ink-muted text-xl lg:text-3xl font-serif italic break-words">
-                    "Your mind reflects the world, and the world reflects your mind..."
+              {/* Hero Section */}
+              <section className="text-center space-y-12 pt-12">
+                <div className="space-y-6">
+                  <h2 className="text-5xl sm:text-7xl lg:text-9xl font-black tracking-tighter text-ink leading-tight">
+                    Build a system for <br />
+                    <span className="text-accent italic font-serif">your thoughts.</span>
+                  </h2>
+                  <p className="max-w-2xl mx-auto text-ink-muted text-xl lg:text-3xl font-serif italic leading-relaxed px-4">
+                    Capture, organise, and evolve your thinking into a structured system.
                   </p>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {[
-                  { id: 'timeline', icon: Clock, label: 'Timeline', desc: "See your thoughts in the order you wrote them. It's like a diary that grows with you every day.", color: 'from-amber-500/20' },
-                  { id: 'documents', icon: BookOpen, label: 'Documents', desc: "Write long essays, research notes, or life plans. Perfect for when a simple thought needs more space to grow.", color: 'from-blue-500/20' },
-                  { id: 'purpose', icon: Target, label: 'Principles', desc: "Define the rules you live by. Keep your core values and life purpose front and center to stay focused.", color: 'from-emerald-500/20' },
-                  { id: 'categories', icon: Hash, label: 'Categories', desc: "Organize your mind by grouping thoughts into topics like 'Work', 'Health', or 'Philosophy'.", color: 'from-purple-500/20' },
-                  { id: 'questions', icon: HelpCircle, label: 'Questions', desc: "Store the big questions that keep you curious. Revisit them whenever you need a moment of deep reflection.", color: 'from-rose-500/20' },
-                  { id: 'capsule', icon: Lock, label: 'Capsules', desc: "Write messages to your future self. Set a date, and they'll stay locked until the perfect moment arrives.", color: 'from-indigo-500/20' },
-                  { id: 'graph', icon: BarChart3, label: 'Insights', desc: "Discover patterns in how you think. See your most active days and which topics occupy your mind the most.", color: 'from-cyan-500/20' },
-                  { id: 'book', icon: History, label: 'Archive', desc: "A safe place for all your past reflections. Browse through your history and see how much you've evolved.", color: 'from-orange-500/20' },
-                ].map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => changeTab(item.id)}
-                    className="group relative flex flex-col p-8 rounded-3xl bg-surface border border-border hover:border-accent transition-all text-left overflow-hidden"
+                
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-6 px-6">
+                  <Button 
+                    onClick={() => setIsWriting(true)} 
+                    className="w-full sm:w-auto h-20 px-12 rounded-3xl text-xl font-black shadow-2xl shadow-accent/20 hover:scale-105 transition-all"
                   >
-                    <div className={cn("absolute inset-0 bg-gradient-to-br to-transparent opacity-0 group-hover:opacity-100 transition-opacity", item.color)} />
-                    <div className="relative z-10">
-                      <div className="w-12 h-12 rounded-2xl bg-bg border border-border flex items-center justify-center text-accent mb-6 group-hover:scale-110 transition-transform">
-                        <item.icon size={24} />
-                      </div>
-                      <h3 className="text-xl font-bold text-ink mb-2">{item.label}</h3>
-                      <p className="text-sm text-ink-muted leading-relaxed">{item.desc}</p>
-                    </div>
-                    <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-                      <ArrowRight size={20} className="text-accent" />
-                    </div>
-                  </button>
-                ))}
-              </div>
+                    <Plus size={28} /> Write Your First Thought
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => {
+                      const el = document.getElementById('how-it-works');
+                      el?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                    className="w-full sm:w-auto h-20 px-12 rounded-3xl text-xl font-bold border-border/50 hover:bg-surface transition-all"
+                  >
+                    Explore the System
+                  </Button>
+                </div>
+              </section>
 
-              {/* Quick Action */}
-              <div className="flex justify-center pt-8">
+              {/* Core Idea Section */}
+              <section className="max-w-6xl mx-auto px-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                  <div className="space-y-8">
+                    <h3 className="text-4xl font-black text-ink">Why Thought Shaastra?</h3>
+                    <div className="space-y-6">
+                      <div className="flex gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-red-900/20 flex items-center justify-center text-red-400 shrink-0">
+                          <X size={24} />
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-bold text-ink">Thoughts are scattered</h4>
+                          <p className="text-ink-muted">Valuable insights are lost in the noise of daily life.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-red-900/20 flex items-center justify-center text-red-400 shrink-0">
+                          <X size={24} />
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-bold text-ink">Insights are forgotten</h4>
+                          <p className="text-ink-muted">Without a system, your best ideas never reach their potential.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-red-900/20 flex items-center justify-center text-red-400 shrink-0">
+                          <X size={24} />
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-bold text-ink">Ideas don't compound</h4>
+                          <p className="text-ink-muted">True wisdom comes from connecting and evolving your thoughts over time.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <Card className="p-12 bg-accent/5 border-accent/20 flex flex-col justify-center text-center space-y-6">
+                    <div className="w-20 h-20 bg-accent rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-accent/40">
+                      <Feather size={40} className="text-bg" />
+                    </div>
+                    <h4 className="text-3xl font-black text-ink">The Solution</h4>
+                    <p className="text-xl text-ink-muted font-serif italic">
+                      Thought Shaastra turns thinking into a structured system. It is your personal knowledge and reflection OS.
+                    </p>
+                  </Card>
+                </div>
+              </section>
+
+              {/* How It Works Section */}
+              <section id="how-it-works" className="max-w-6xl mx-auto px-6 space-y-16">
+                <div className="text-center space-y-4">
+                  <h3 className="text-4xl font-black text-ink">The Thinking Flow</h3>
+                  <p className="text-ink-muted text-lg">From a spark of an idea to a lifetime of wisdom.</p>
+                </div>
+
+                <div className="relative">
+                  <div className="hidden lg:block absolute top-1/2 left-0 right-0 h-px bg-border -translate-y-1/2 z-0" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8 relative z-10">
+                    {[
+                      { label: 'Capture', desc: 'Timeline & Questions', icon: Mic, term: 'Sutra' },
+                      { label: 'Expand', desc: 'Long-form Documents', icon: BookOpen, term: 'Grantha' },
+                      { label: 'Organise', desc: 'Structured Categories', icon: Hash, term: 'Varga' },
+                      { label: 'Derive', desc: 'Extract Core Insights', icon: BarChart3, term: 'Gyan' },
+                      { label: 'Reflect', desc: 'Future Time Capsules', icon: Lock, term: 'Kala' },
+                      { label: 'Evolve', desc: 'A Lifetime of Wisdom', icon: Sunrise, term: 'Moksha' },
+                    ].map((step, idx) => (
+                      <div key={idx} className="flex flex-col items-center text-center space-y-4">
+                        <div className="w-16 h-16 rounded-full bg-surface border border-border flex items-center justify-center text-accent shadow-xl">
+                          <step.icon size={24} />
+                        </div>
+                        <div>
+                          <h5 className="font-bold text-ink">{step.label}</h5>
+                          <p className="text-[10px] text-accent font-bold uppercase tracking-widest">{step.term}</p>
+                          <p className="text-[10px] text-ink-muted mt-1">{step.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+              {/* Feature Grouping Section */}
+              <section className="max-w-6xl mx-auto px-6 space-y-16">
+                <div className="text-center space-y-4">
+                  <h3 className="text-4xl font-black text-ink">The Layers of Thought</h3>
+                  <p className="text-ink-muted text-lg">Every module serves a specific purpose in your system.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {/* CAPTURE */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-500">
+                        <Mic size={16} />
+                      </div>
+                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Capture</h4>
+                    </div>
+                    <div className="space-y-4">
+                      <button onClick={() => changeTab('timeline')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Timeline</h5>
+                        <p className="text-xs text-ink-muted mt-1">Quick thoughts and daily reflections.</p>
+                      </button>
+                      <button onClick={() => changeTab('questions')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Questions</h5>
+                        <p className="text-xs text-ink-muted mt-1">Structured thinking prompts to spark curiosity.</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* DEVELOP */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-500">
+                        <BookOpen size={16} />
+                      </div>
+                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Develop</h4>
+                    </div>
+                    <div className="space-y-4">
+                      <button onClick={() => changeTab('documents')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Documents</h5>
+                        <p className="text-xs text-ink-muted mt-1">Long-form thinking and detailed research.</p>
+                      </button>
+                      <button onClick={() => changeTab('graph')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Insights</h5>
+                        <p className="text-xs text-ink-muted mt-1">Key realizations and data-driven patterns.</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* DEFINE */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-500">
+                        <Target size={16} />
+                      </div>
+                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Define</h4>
+                    </div>
+                    <div className="space-y-4">
+                      <button onClick={() => changeTab('purpose')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Principles</h5>
+                        <p className="text-xs text-ink-muted mt-1">Core beliefs and rules you live by.</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* ORGANIZE */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-500">
+                        <Hash size={16} />
+                      </div>
+                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Organize</h4>
+                    </div>
+                    <div className="space-y-4">
+                      <button onClick={() => changeTab('categories')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Categories</h5>
+                        <p className="text-xs text-ink-muted mt-1">A grouping system for your mental map.</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* REFLECT */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-rose-500/20 flex items-center justify-center text-rose-500">
+                        <Lock size={16} />
+                      </div>
+                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Reflect</h4>
+                    </div>
+                    <div className="space-y-4">
+                      <button onClick={() => changeTab('capsule')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Time Capsules</h5>
+                        <p className="text-xs text-ink-muted mt-1">Write messages to your future self.</p>
+                      </button>
+                      <button onClick={() => changeTab('book')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Archive</h5>
+                        <p className="text-xs text-ink-muted mt-1">Store inactive ideas without the clutter.</p>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Emotional Hook Section */}
+              <section className="bg-surface border-y border-border py-32 px-6">
+                <div className="max-w-4xl mx-auto text-center space-y-16">
+                  <div className="space-y-8">
+                    <h3 className="text-4xl sm:text-6xl font-black text-ink leading-tight">Your thoughts deserve structure.</h3>
+                    <p className="text-ink-muted text-2xl font-serif italic">"Clarity comes from thinking better, not thinking more."</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    <div className="space-y-4">
+                      <p className="text-accent font-bold text-lg">What you don't revisit, you lose.</p>
+                      <p className="text-ink-muted">Thought Shaastra ensures your best ideas are preserved and evolved.</p>
+                    </div>
+                    <div className="space-y-4">
+                      <p className="text-accent font-bold text-lg">A sanctuary for your mind.</p>
+                      <p className="text-ink-muted">A clean, calm space away from the noise of the digital world.</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Final CTA Section */}
+              <section className="text-center space-y-12 py-20 px-6">
+                <div className="space-y-6">
+                  <h3 className="text-4xl sm:text-6xl font-black text-ink">Begin Your Thinking.</h3>
+                  <p className="text-ink-muted text-xl">This is your Thought Shaastra — your personal system for wisdom.</p>
+                </div>
                 <Button 
                   onClick={() => setIsWriting(true)} 
-                  className="h-20 px-12 rounded-3xl text-xl font-black shadow-2xl shadow-accent/20 hover:scale-105 transition-all"
+                  className="h-20 px-16 rounded-3xl text-2xl font-black shadow-2xl shadow-accent/20 hover:scale-105 transition-all"
                 >
-                  <Plus size={28} /> Capture a Thought
+                  Enter the System
                 </Button>
-              </div>
-
-              {/* Info Boxes Moved to Bottom */}
-              <div className="max-w-4xl mx-auto pt-16">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <motion.div whileHover={{ y: -5 }} className="p-8 rounded-[2rem] bg-surface/40 border border-border/40 backdrop-blur-sm flex items-center justify-center text-center break-words">
-                    <p className="text-ink-muted leading-relaxed text-lg">
-                      Thought Shaastra is your private digital sanctuary.
-                    </p>
-                  </motion.div>
-                  <motion.div whileHover={{ y: -5 }} className="p-8 rounded-[2rem] bg-surface/40 border border-border/40 backdrop-blur-sm flex items-center justify-center text-center break-words">
-                    <p className="text-ink-muted leading-relaxed text-lg">
-                      It's <span className="text-accent font-bold">100% free</span>, and we never take your data—<span className="text-ink font-bold">you own everything you write</span>.
-                    </p>
-                  </motion.div>
-                  <motion.div whileHover={{ y: -5 }} className="p-8 rounded-[2rem] bg-surface/40 border border-border/40 backdrop-blur-sm flex items-center justify-center text-center break-words">
-                    <p className="text-ink-muted leading-relaxed text-lg">
-                      Use this space to clear your mind, track your growth, and preserve your wisdom.
-                    </p>
-                  </motion.div>
-                  <motion.div whileHover={{ y: -5 }} className="p-8 rounded-[2rem] bg-surface/40 border border-border/40 backdrop-blur-sm flex items-center justify-center text-center break-words">
-                    <p className="text-ink-muted leading-relaxed text-lg">
-                      Sign in to safely back up your thoughts and access them anywhere, or simply start writing right now.
-                    </p>
-                  </motion.div>
-                </div>
-              </div>
+              </section>
             </motion.div>
           )}
 
@@ -933,10 +1120,52 @@ export default function App() {
                                 <span className="text-[10px] text-ink-muted font-bold uppercase tracking-widest">{formatTime(thought.created_at)}</span>
                               </div>
                               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => { setEditingThought(thought); setIsWriting(true); }} className="p-1.5 text-ink-muted hover:text-accent rounded-lg">
+                                <button onClick={() => { setEditingThought(thought); setIsWriting(true); }} className="p-1.5 text-ink-muted hover:text-accent rounded-lg" title="Edit">
                                   <Edit3 size={14} />
                                 </button>
-                                <button onClick={() => { navigator.clipboard.writeText(thought.text); alert('Copied'); }} className="p-1.5 text-ink-muted hover:text-accent rounded-lg">
+                                <button 
+                                  onClick={async () => {
+                                    if (confirm('Convert this thought into a long-form Document?')) {
+                                      const res = await fetch('/api/documents', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          title: thought.title || 'Thought Expansion',
+                                          description: thought.text.substring(0, 100) + '...',
+                                          sections: [{ title: 'Original Thought', content: thought.text }]
+                                        })
+                                      });
+                                      if (res.ok) {
+                                        const data = await res.json();
+                                        await fetch(`/api/documents/${data.id}/link/${thought.id}`, { method: 'POST' });
+                                        fetchData();
+                                        changeTab('documents');
+                                      }
+                                    }
+                                  }} 
+                                  className="p-1.5 text-ink-muted hover:text-accent rounded-lg"
+                                  title="Convert to Document"
+                                >
+                                  <BookOpen size={14} />
+                                </button>
+                                <button 
+                                  onClick={async () => {
+                                    if (confirm('Convert this thought into a Core Principle?')) {
+                                      await fetch('/api/purpose', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ text: thought.text, type: 'text' })
+                                      });
+                                      fetchData();
+                                      changeTab('purpose');
+                                    }
+                                  }} 
+                                  className="p-1.5 text-ink-muted hover:text-accent rounded-lg"
+                                  title="Convert to Principle"
+                                >
+                                  <Target size={14} />
+                                </button>
+                                <button onClick={() => { navigator.clipboard.writeText(thought.text); alert('Copied'); }} className="p-1.5 text-ink-muted hover:text-accent rounded-lg" title="Copy">
                                   <Share2 size={14} />
                                 </button>
                               </div>
@@ -1173,11 +1402,40 @@ export default function App() {
           )}
 
           {activeTab === 'graph' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="graph" className="space-y-8">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="graph" className="space-y-12">
               <div className="text-center mb-12">
                 <h2 className="text-5xl font-black mb-4 text-ink">Insights</h2>
-                <p className="text-ink-muted font-serif italic text-xl">Patterns of your consciousness</p>
+                <p className="text-ink-muted font-serif italic text-xl">Patterns of your consciousness & wisdom</p>
               </div>
+
+              {/* Wisdom Level Card */}
+              <Card className="bg-accent/5 border-accent/20 p-12 text-center space-y-8 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent to-transparent opacity-50" />
+                <div className="space-y-4">
+                  <h3 className="text-xs font-bold text-accent uppercase tracking-[0.4em]">Current Wisdom Level</h3>
+                  <div className="text-7xl font-black text-ink tracking-tighter">{wisdomLevel.title}</div>
+                  <p className="text-xl text-ink-muted font-serif italic">{wisdomLevel.desc}</p>
+                </div>
+                
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-ink-muted">
+                    <span>{wisdomScore} Points</span>
+                    <span>Next Level: {
+                      wisdomScore < 50 ? '50' : 
+                      wisdomScore < 150 ? '150' : 
+                      wisdomScore < 300 ? '300' : 
+                      wisdomScore < 600 ? '600' : '∞'
+                    }</span>
+                  </div>
+                  <div className="h-2 bg-bg rounded-full overflow-hidden border border-border">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, (wisdomScore / (wisdomScore < 50 ? 50 : wisdomScore < 150 ? 150 : wisdomScore < 300 ? 300 : wisdomScore < 600 ? 600 : wisdomScore)) * 100)}%` }}
+                      className="h-full bg-accent shadow-[0_0_15px_rgba(196,155,102,0.5)]"
+                    />
+                  </div>
+                </div>
+              </Card>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <Card className="h-[400px] flex flex-col p-6">
@@ -1462,22 +1720,27 @@ export default function App() {
             </motion.div>
           )}
         </AnimatePresence>
-      </main>
 
-      {/* Footer Disclaimer */}
-      <footer className="py-12 px-6 border-t border-border/30 mt-20">
-        <div className="max-w-4xl mx-auto">
-          <Card className="bg-surface/30 border-border/20 p-6 text-center">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-ink-muted mb-2">Disclaimer</p>
-            <p className="text-xs text-ink-muted/60 leading-relaxed font-serif italic">
-              Thought Shaastra is a personal tool for reflection and growth. Your data is stored locally and optionally backed up to a secure cloud if you choose to sign in. We do not use your data for any other purpose, and no artificial intelligence is used in the functioning or operation of this application. You are the sole owner of your thoughts.
-            </p>
-          </Card>
-          <div className="mt-8 text-center">
-            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-accent/40">© {new Date().getFullYear()} Thought Shaastra</p>
+        {/* Global Disclaimer Footer */}
+        <footer className="mt-32 pb-12 px-6">
+          <div className="max-w-4xl mx-auto">
+            <Card className="bg-surface/20 border-border/30 backdrop-blur-sm p-8 text-center space-y-4">
+              <div className="flex items-center justify-center gap-3 text-accent/60">
+                <Shield size={16} />
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Private & Secure Sanctuary</span>
+              </div>
+              <p className="text-xs text-ink-muted leading-relaxed max-w-2xl mx-auto">
+                Thought Shaastra is a personal thinking system. Your data is stored locally and only backed up if you choose to create an account. 
+                <span className="text-ink font-bold"> No Artificial Intelligence is used in the functioning of this app.</span> 
+                Your thoughts are yours alone, unanalyzed and private.
+              </p>
+              <div className="pt-4 text-[9px] text-ink-muted/40 uppercase tracking-widest">
+                © {new Date().getFullYear()} Thought Shaastra • Built for the Mind
+              </div>
+            </Card>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </main>
 
       {/* Floating Action Button (Mobile) */}
       <div className="lg:hidden fixed bottom-8 right-8 z-40">
