@@ -1033,6 +1033,64 @@ export default function App() {
     return currentStreak;
   }, [thoughts]);
 
+  const discoveredConnections = useMemo(() => {
+    if (thoughts.length < 2) return [];
+    
+    const connections: { type: string, thoughtA: Thought, thoughtB: Thought, reason: string }[] = [];
+    const stopWords = new Set(['the', 'and', 'for', 'with', 'this', 'that', 'your', 'from', 'have', 'what', 'about', 'there', 'their']);
+
+    for (let i = 0; i < thoughts.length; i++) {
+      for (let j = i + 1; j < thoughts.length; j++) {
+        const a = thoughts[i];
+        const b = thoughts[j];
+        
+        // 1. Tag Synergy
+        const tagsA = a.tags?.split(',').map(t => t.trim().toLowerCase()).filter(t => t) || [];
+        const tagsB = b.tags?.split(',').map(t => t.trim().toLowerCase()).filter(t => t) || [];
+        const commonTags = tagsA.filter(t => tagsB.includes(t));
+        
+        if (commonTags.length > 0) {
+          connections.push({
+            type: 'Tag Synergy',
+            thoughtA: a,
+            thoughtB: b,
+            reason: `Both explore "${commonTags[0]}"`
+          });
+          continue;
+        }
+
+        // 2. Temporal Echo (Same day of year)
+        const dateA = parseISO(a.created_at);
+        const dateB = parseISO(b.created_at);
+        if (dateA.getMonth() === dateB.getMonth() && dateA.getDate() === dateB.getDate() && a.id !== b.id) {
+          connections.push({
+            type: 'Temporal Echo',
+            thoughtA: a,
+            thoughtB: b,
+            reason: `Created on the same day of the year (${format(dateA, 'MMM d')})`
+          });
+          continue;
+        }
+
+        // 3. Keyword Resonance
+        const wordsA = a.text.toLowerCase().split(/\W+/).filter(w => w.length > 4 && !stopWords.has(w));
+        const wordsB = b.text.toLowerCase().split(/\W+/).filter(w => w.length > 4 && !stopWords.has(w));
+        const commonWords = wordsA.filter(w => wordsB.includes(w));
+        
+        if (commonWords.length > 0) {
+          connections.push({
+            type: 'Keyword Resonance',
+            thoughtA: a,
+            thoughtB: b,
+            reason: `Both mention "${commonWords[0]}"`
+          });
+        }
+      }
+    }
+    
+    return connections.sort(() => Math.random() - 0.5).slice(0, 12);
+  }, [thoughts]);
+
   const thoughtOfTheDay = useMemo(() => {
     if (thoughts.length === 0) return null;
     const seed = new Date().toDateString();
@@ -1868,6 +1926,84 @@ export default function App() {
 
           {activeTab === 'graph' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="graph" className="space-y-12">
+              <div className="text-center mb-12">
+                <h2 className="text-5xl font-black mb-4 text-ink">Connections</h2>
+                <p className="text-ink-muted font-serif italic text-xl">The invisible threads between your ideas</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {discoveredConnections.length > 0 ? (
+                  discoveredConnections.map((conn, idx) => (
+                    <Card key={idx} className="p-6 border-accent/20 hover:border-accent transition-all group relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
+                        <Network size={48} className="text-accent" />
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 text-accent rounded-full text-[10px] font-bold uppercase tracking-widest">
+                          <Share2 size={12} /> {conn.type}
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div className="p-3 bg-surface rounded-xl border border-border">
+                            <p className="text-xs text-ink line-clamp-2 italic">"{conn.thoughtA.text}"</p>
+                          </div>
+                          <div className="flex justify-center">
+                            <div className="w-px h-4 bg-border relative">
+                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-accent" />
+                            </div>
+                          </div>
+                          <div className="p-3 bg-surface rounded-xl border border-border">
+                            <p className="text-xs text-ink line-clamp-2 italic">"{conn.thoughtB.text}"</p>
+                          </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-border">
+                          <p className="text-[10px] font-bold text-ink-muted uppercase tracking-widest">{conn.reason}</p>
+                        </div>
+                      </div>
+                    </Card>
+                  ))
+                ) : (
+                  <div className="col-span-full py-24 text-center space-y-4">
+                    <div className="w-20 h-20 bg-surface rounded-full flex items-center justify-center text-border mx-auto border-2 border-dashed border-border">
+                      <Network size={32} />
+                    </div>
+                    <h3 className="text-xl font-bold text-ink">No connections discovered yet</h3>
+                    <p className="text-ink-muted max-w-md mx-auto">Continue capturing your thoughts. As your sanctuary grows, the threads between your ideas will reveal themselves.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Manual Connections */}
+              <div className="space-y-8">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-black text-ink">Explicit Links</h3>
+                  <p className="text-xs text-ink-muted font-bold uppercase tracking-widest">Thoughts you've manually connected</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {thoughts.filter(t => t.parent_id).map(t => {
+                    const parent = thoughts.find(p => p.id === t.parent_id);
+                    return (
+                      <Card key={t.id} className="p-6 flex items-center gap-4 hover:bg-surface/50 transition-colors cursor-pointer" onClick={() => { setEditingThought(t); setIsWriting(true); }}>
+                        <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent shrink-0">
+                          <LinkIcon size={20} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-accent uppercase tracking-widest mb-1">Child of: {parent?.title || parent?.text.substring(0, 20)}...</p>
+                          <h4 className="font-bold text-ink truncate">{t.title || t.text.substring(0, 40)}...</h4>
+                        </div>
+                        <ChevronRight size={16} className="text-border" />
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'insights' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} key="insights" className="space-y-12">
               <div className="text-center mb-12">
                 <h2 className="text-5xl font-black mb-4 text-ink">Insights</h2>
                 <p className="text-ink-muted font-serif italic text-xl">Patterns of your consciousness & wisdom</p>
