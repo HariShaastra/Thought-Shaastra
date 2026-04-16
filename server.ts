@@ -37,6 +37,12 @@ db.exec(`
     user_id INTEGER,
     title TEXT,
     text TEXT NOT NULL,
+    expression TEXT,
+    meaning TEXT,
+    clarity TEXT,
+    is_insight INTEGER DEFAULT 0,
+    reasoning TEXT,
+    insight TEXT,
     category_id INTEGER,
     tags TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -137,6 +143,12 @@ db.exec(`
 `);
 
 // Migration to add missing columns if they don't exist (for existing DBs)
+try { db.exec("ALTER TABLE thoughts ADD COLUMN reasoning TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE thoughts ADD COLUMN insight TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE thoughts ADD COLUMN expression TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE thoughts ADD COLUMN meaning TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE thoughts ADD COLUMN clarity TEXT"); } catch (e) {}
+try { db.exec("ALTER TABLE thoughts ADD COLUMN is_insight INTEGER DEFAULT 0"); } catch (e) {}
 try { db.exec("ALTER TABLE questions ADD COLUMN type TEXT DEFAULT 'text'"); } catch (e) {}
 try { db.exec("ALTER TABLE questions ADD COLUMN audio_data TEXT"); } catch (e) {}
 try { db.exec("ALTER TABLE purpose ADD COLUMN type TEXT DEFAULT 'text'"); } catch (e) {}
@@ -242,9 +254,9 @@ async function startServer() {
       if (thoughts) {
         for (const t of thoughts) {
           db.prepare(`
-            INSERT INTO thoughts (user_id, title, text, tags, created_at, unlock_at, is_private, type, audio_data, attachments)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).run(userId, t.title, t.text, t.tags, t.created_at, t.unlock_at, t.is_private ? 1 : 0, t.type, t.audio_data, t.attachments);
+            INSERT INTO thoughts (user_id, title, text, expression, meaning, clarity, is_insight, reasoning, insight, tags, created_at, unlock_at, is_private, type, audio_data, attachments)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(userId, t.title, t.text, t.expression, t.meaning, t.clarity, t.is_insight ? 1 : 0, t.reasoning, t.insight, t.tags, t.created_at, t.unlock_at, t.is_private ? 1 : 0, t.type, t.audio_data, t.attachments);
         }
       }
       if (questions) {
@@ -278,21 +290,21 @@ async function startServer() {
 
   app.post("/api/thoughts", (req: any, res) => {
     const userId = getUserId(req);
-    const { title, text, category_id, tags, parent_id, unlock_at, is_private, type, audio_data, attachments } = req.body;
+    const { title, text, expression, meaning, clarity, is_insight, reasoning, insight, category_id, tags, parent_id, unlock_at, is_private, type, audio_data, attachments } = req.body;
     const info = db.prepare(`
-      INSERT INTO thoughts (user_id, title, text, category_id, tags, parent_id, unlock_at, is_private, type, audio_data, attachments)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(userId, title, text, category_id, tags, parent_id, unlock_at, is_private ? 1 : 0, type || 'text', audio_data, attachments);
+      INSERT INTO thoughts (user_id, title, text, expression, meaning, clarity, is_insight, reasoning, insight, category_id, tags, parent_id, unlock_at, is_private, type, audio_data, attachments)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(userId, title, text, expression, meaning, clarity, is_insight ? 1 : 0, reasoning, insight, category_id, tags, parent_id, unlock_at, is_private ? 1 : 0, type || 'text', audio_data, attachments);
     res.json({ id: info.lastInsertRowid });
   });
 
   app.put("/api/thoughts/:id", (req: any, res) => {
-    const { title, text, category_id, tags, is_private, type, audio_data, attachments } = req.body;
+    const { title, text, expression, meaning, clarity, is_insight, reasoning, insight, category_id, tags, is_private, type, audio_data, attachments } = req.body;
     db.prepare(`
       UPDATE thoughts 
-      SET title = ?, text = ?, category_id = ?, tags = ?, is_private = ?, type = ?, audio_data = ?, attachments = ?, updated_at = CURRENT_TIMESTAMP 
+      SET title = ?, text = ?, expression = ?, meaning = ?, clarity = ?, is_insight = ?, reasoning = ?, insight = ?, category_id = ?, tags = ?, is_private = ?, type = ?, audio_data = ?, attachments = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE id = ?
-    `).run(title, text, category_id, tags, is_private ? 1 : 0, type, audio_data, attachments, req.params.id);
+    `).run(title, text, expression, meaning, clarity, is_insight ? 1 : 0, reasoning, insight, category_id, tags, is_private ? 1 : 0, type, audio_data, attachments, req.params.id);
     res.json({ success: true });
   });
 

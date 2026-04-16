@@ -658,6 +658,9 @@ export default function App() {
   const [isCreateDocumentModalOpen, setIsCreateDocumentModalOpen] = useState(false);
   const [isLinkThoughtModalOpen, setIsLinkThoughtModalOpen] = useState(false);
   const [editingThought, setEditingThought] = useState<Thought | null>(null);
+  const [isGuidedFlowActive, setIsGuidedFlowActive] = useState(false);
+  const [guidedFlowStep, setGuidedFlowStep] = useState(0);
+  const [currentThoughtData, setCurrentThoughtData] = useState<any>(null);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const id = Date.now();
@@ -870,8 +873,21 @@ export default function App() {
 
   const handleSaveThought = async (thoughtData: any) => {
     localStorage.setItem('last_activity_timestamp', Date.now().toString());
+    
+    // If we are starting a new thought from the home screen, trigger guided flow
+    if (!editingThought && !isGuidedFlowActive && activeTab === 'home') {
+      setCurrentThoughtData(thoughtData);
+      setIsGuidedFlowActive(true);
+      setGuidedFlowStep(1);
+      return;
+    }
+
     const payload = {
       ...thoughtData,
+      expression: thoughtData.expression || null,
+      meaning: thoughtData.meaning || null,
+      clarity: thoughtData.clarity || null,
+      is_insight: thoughtData.is_insight || 0,
       unlock_at: thoughtData.unlock_at ? new Date(thoughtData.unlock_at).toISOString() : null,
       is_private: 1,
       attachments: thoughtData.attachments ? JSON.stringify(thoughtData.attachments) : null
@@ -943,6 +959,11 @@ export default function App() {
       setIsWriting(false);
       setEditingThought(null);
     }
+
+    // Reset flow state
+    setIsGuidedFlowActive(false);
+    setGuidedFlowStep(0);
+    setCurrentThoughtData(null);
   };
 
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -1101,6 +1122,115 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-bg text-ink transition-colors duration-300">
+      {/* Guided Flow Overlay */}
+      <AnimatePresence>
+        {isGuidedFlowActive && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-bg/95 backdrop-blur-xl flex items-center justify-center p-6"
+          >
+            <div className="max-w-2xl w-full space-y-12">
+              <div className="space-y-4 text-center">
+                <div className="inline-flex items-center gap-2 px-4 py-1 bg-accent/10 border border-accent/20 rounded-full text-accent text-[10px] font-bold uppercase tracking-widest">
+                  {guidedFlowStep <= 3 ? `Step ${guidedFlowStep} of 3` : 'Final Step'}
+                </div>
+                <h2 className="text-4xl font-black text-ink">
+                  {guidedFlowStep === 1 && "What’s really on your mind?"}
+                  {guidedFlowStep === 2 && "Why does this matter to you?"}
+                  {guidedFlowStep === 3 && "What do you want to do or understand now?"}
+                  {guidedFlowStep === 4 && "Save this as an insight?"}
+                </h2>
+              </div>
+
+              <Card className="p-8 space-y-8 bg-surface border-border shadow-2xl">
+                {guidedFlowStep === 1 && (
+                  <div className="space-y-6">
+                    <TextArea 
+                      id="guided-expression"
+                      placeholder="Write freely..."
+                      className="min-h-[150px] text-lg"
+                    />
+                    <div className="flex gap-4">
+                      <Button variant="outline" className="flex-1" onClick={() => setGuidedFlowStep(2)}>Skip</Button>
+                      <Button className="flex-1" onClick={() => {
+                        const val = (document.getElementById('guided-expression') as HTMLTextAreaElement).value;
+                        setCurrentThoughtData((prev: any) => ({ ...prev, expression: val }));
+                        setGuidedFlowStep(2);
+                      }}>Continue</Button>
+                    </div>
+                  </div>
+                )}
+
+                {guidedFlowStep === 2 && (
+                  <div className="space-y-6">
+                    <TextArea 
+                      id="guided-meaning"
+                      placeholder="How does this make you feel or what does it mean to you?"
+                      className="min-h-[150px] text-lg"
+                    />
+                    <div className="flex gap-4">
+                      <Button variant="outline" className="flex-1" onClick={() => setGuidedFlowStep(3)}>Skip</Button>
+                      <Button className="flex-1" onClick={() => {
+                        const val = (document.getElementById('guided-meaning') as HTMLTextAreaElement).value;
+                        setCurrentThoughtData((prev: any) => ({ ...prev, meaning: val }));
+                        setGuidedFlowStep(3);
+                      }}>Continue</Button>
+                    </div>
+                  </div>
+                )}
+
+                {guidedFlowStep === 3 && (
+                  <div className="space-y-6">
+                    <TextArea 
+                      id="guided-clarity"
+                      placeholder="Create direction or next steps..."
+                      className="min-h-[150px] text-lg"
+                    />
+                    <div className="flex gap-4">
+                      <Button variant="outline" className="flex-1" onClick={() => setGuidedFlowStep(4)}>Skip</Button>
+                      <Button className="flex-1" onClick={() => {
+                        const val = (document.getElementById('guided-clarity') as HTMLTextAreaElement).value;
+                        setCurrentThoughtData((prev: any) => ({ ...prev, clarity: val }));
+                        setGuidedFlowStep(4);
+                      }}>Finish</Button>
+                    </div>
+                  </div>
+                )}
+
+                {guidedFlowStep === 4 && (
+                  <div className="space-y-6">
+                    <p className="text-ink-muted text-center font-serif italic">Would you like to highlight this as a core insight in your wisdom archive?</p>
+                    <div className="flex flex-col gap-4">
+                      <Button className="w-full h-14 text-lg font-bold" onClick={() => handleSaveThought({ ...currentThoughtData, is_insight: 1 })}>
+                        Save as Insight
+                      </Button>
+                      <Button variant="outline" className="w-full h-14 text-lg" onClick={() => handleSaveThought({ ...currentThoughtData, is_insight: 0 })}>
+                        Keep as Thought
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </Card>
+
+              <div className="text-center">
+                <button 
+                  onClick={() => {
+                    setIsGuidedFlowActive(false);
+                    setGuidedFlowStep(0);
+                    setCurrentThoughtData(null);
+                  }}
+                  className="text-ink-muted hover:text-accent text-sm font-bold uppercase tracking-widest"
+                >
+                  Cancel Flow
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Global Header */}
       <header className="fixed top-0 left-0 right-0 h-20 bg-bg/80 backdrop-blur-xl border-b border-border flex items-center justify-between px-4 sm:px-6 lg:px-12 z-50">
         <div className="flex items-center gap-3 sm:gap-6 min-w-0">
@@ -1276,213 +1406,232 @@ export default function App() {
               key="home" 
               className="space-y-24 pb-20"
             >
-              {/* Hero Section */}
-              <section className="text-center space-y-12 pt-8">
-                <div className="space-y-6">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 border border-accent/20 rounded-full text-accent text-xs font-bold uppercase tracking-widest">
-                    <Flower2 size={14} /> Welcome back to your sanctuary, {userName || 'Seeker'}
-                  </div>
-                  <h2 className="text-5xl sm:text-7xl lg:text-9xl font-black tracking-tighter text-ink leading-tight">
-                    Build a system for <br />
-                    <span className="text-accent italic font-serif">your thoughts.</span>
+              {/* Hero Section - REDESIGNED */}
+              <section className="text-center space-y-12 pt-16 max-w-4xl mx-auto px-6">
+                <div className="space-y-8">
+                  <h2 className="text-4xl sm:text-6xl font-black tracking-tighter text-ink leading-tight">
+                    {userName ? `${userName}, what` : 'What'} are you <br />
+                    <span className="text-accent italic font-serif">thinking right now?</span>
                   </h2>
-                  <p className="max-w-2xl mx-auto text-ink-muted text-xl lg:text-3xl font-serif italic leading-relaxed px-4">
-                    Capture, organise, and evolve your thinking into a structured system.
+                  
+                  <div className="relative group">
+                    <TextArea 
+                      id="home-thought-input"
+                      placeholder="Start with one thought. The rest will follow." 
+                      className="min-h-[150px] text-xl p-8 rounded-[2rem] border-2 border-border focus:border-accent shadow-xl transition-all bg-surface/50 backdrop-blur-sm"
+                    />
+                    <div className="absolute bottom-4 right-4">
+                      <Button 
+                        onClick={() => {
+                          const input = document.getElementById('home-thought-input') as HTMLTextAreaElement;
+                          if (input.value.trim()) {
+                            handleSaveThought({ text: input.value, type: 'text' });
+                            input.value = '';
+                          } else {
+                            showToast('Please enter a thought first', 'info');
+                          }
+                        }}
+                        className="h-14 px-8 rounded-2xl text-lg font-black shadow-lg shadow-accent/20"
+                      >
+                        Write Thought →
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Simple Intro */}
+                <div className="max-w-2xl mx-auto space-y-6 bg-accent/5 p-8 rounded-[2rem] border border-accent/10">
+                  <h3 className="text-2xl font-black text-ink">What is Thought Shaastra?</h3>
+                  <p className="text-lg text-ink-muted leading-relaxed">
+                    It's a simple space to <span className="text-accent font-bold">clear your mind</span>. 
+                    No complex tools, just you and your thoughts.
+                  </p>
+                  <div className="flex items-center justify-center gap-4 text-sm font-bold text-accent uppercase tracking-widest">
+                    <span>Capture</span>
+                    <div className="w-1 h-1 rounded-full bg-accent/30" />
+                    <span>Understand</span>
+                    <div className="w-1 h-1 rounded-full bg-accent/30" />
+                    <span>Grow</span>
+                  </div>
+                  <p className="text-xs text-ink-muted italic">
+                    Tip: Write <span className="font-bold text-ink">3 thoughts</span> to unlock deeper layers of your mind.
                   </p>
                 </div>
-                
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-6 px-6">
-                  <Button 
-                    onClick={() => setIsWriting(true)} 
-                    className="w-full sm:w-auto h-20 px-12 rounded-3xl text-xl font-black shadow-2xl shadow-accent/20 hover:scale-105 transition-all"
-                  >
-                    <Plus size={28} /> Write Your First Thought
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => changeTab('timeline')}
-                    className="w-full sm:w-auto h-20 px-12 rounded-3xl text-xl font-bold border-border/50 hover:bg-surface transition-all"
-                  >
-                    View Your Timeline
-                  </Button>
+
+                <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+                  <button onClick={() => changeTab('timeline')} className="flex items-center gap-2 px-6 py-3 bg-surface border border-border rounded-2xl text-sm font-bold text-ink-muted hover:text-accent hover:border-accent transition-all">
+                    <History size={18} /> Continue thinking
+                  </button>
+                  <button onClick={() => changeTab('timeline')} className="flex items-center gap-2 px-6 py-3 bg-surface border border-border rounded-2xl text-sm font-bold text-ink-muted hover:text-accent hover:border-accent transition-all">
+                    <BookOpen size={18} /> View past thoughts
+                  </button>
                 </div>
               </section>
 
-              {/* Quick Stats & Daily Prompt */}
-              <section className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-                <Card className="p-8 bg-surface border-border flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
-                    <Calendar size={32} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">Current Streak</p>
-                    <h4 className="text-3xl font-black text-ink">{streak} Days</h4>
-                  </div>
-                </Card>
-                <Card className="p-8 bg-surface border-border flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
-                    <Flower2 size={32} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-ink-muted">Wisdom Level</p>
-                    <h4 className="text-3xl font-black text-ink">{wisdomLevel.title}</h4>
-                  </div>
-                </Card>
-                <Card className="p-8 bg-accent text-bg flex items-center gap-6 cursor-pointer hover:scale-105 transition-all" onClick={() => setIsWriting(true)}>
-                  <div className="w-16 h-16 rounded-2xl bg-bg/20 flex items-center justify-center text-bg">
-                    <Feather size={32} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-bg/60">Daily Prompt</p>
-                    <h4 className="text-xl font-bold">What are you thinking today?</h4>
-                  </div>
-                </Card>
-              </section>
-
-              {/* Feature Grouping Section - MOVED UP */}
-              <section className="max-w-6xl mx-auto px-6 space-y-16">
-                <div className="text-center space-y-4">
-                  <h3 className="text-4xl font-black text-ink">The Layers of Thought</h3>
-                  <p className="text-ink-muted text-lg">Every module serves a specific purpose in your system.</p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {/* CAPTURE */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-500">
-                        <Mic size={16} />
-                      </div>
-                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Capture</h4>
-                    </div>
-                    <div className="space-y-4">
-                      <button onClick={() => changeTab('timeline')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Timeline</h5>
-                        <p className="text-xs text-ink-muted mt-1">Quick thoughts and daily reflections.</p>
-                      </button>
-                      <button onClick={() => changeTab('questions')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Questions</h5>
-                        <p className="text-xs text-ink-muted mt-1">Structured thinking prompts to spark curiosity.</p>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* DEVELOP */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-500">
-                        <BookOpen size={16} />
-                      </div>
-                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Develop</h4>
-                    </div>
-                    <div className="space-y-4">
-                      <button onClick={() => changeTab('documents')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Documents</h5>
-                        <p className="text-xs text-ink-muted mt-1">Long-form thinking and detailed research.</p>
-                      </button>
-                      <button onClick={() => changeTab('graph')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Connections</h5>
-                        <p className="text-xs text-ink-muted mt-1">Visualise how your ideas link together.</p>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* REFLECT */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-500">
-                        <Lock size={16} />
-                      </div>
-                      <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Reflect</h4>
-                    </div>
-                    <div className="space-y-4">
-                      <button onClick={() => changeTab('capsule')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Time Capsules</h5>
-                        <p className="text-xs text-ink-muted mt-1">Lock thoughts for your future self to unlock.</p>
-                      </button>
-                      <button onClick={() => changeTab('insights')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
-                        <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Insights</h5>
-                        <p className="text-xs text-ink-muted mt-1">Patterns and progress in your thinking.</p>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
-              {/* Recent Thoughts Section */}
-              <section className="max-w-6xl mx-auto px-6 space-y-12">
+              {/* Recent Thoughts - Simplified */}
+              <section className="max-w-6xl mx-auto px-6 space-y-8">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-3xl font-black text-ink">Recent Sutras</h3>
-                  <button onClick={() => changeTab('timeline')} className="text-accent font-bold text-sm hover:underline">View All</button>
+                  <h3 className="text-2xl font-black text-ink">Recent Sutras</h3>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-accent/10 border border-accent/20 rounded-full text-accent text-[10px] font-bold uppercase tracking-widest">
+                    <Calendar size={12} /> {streak} Day Streak
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {thoughts.slice(0, 3).map(thought => (
                     <Card key={thought.id} className="p-6 space-y-4 hover:border-accent transition-all cursor-pointer" onClick={() => { setEditingThought(thought); setIsWriting(true); }}>
                       <div className="flex justify-between items-start">
                         <span className="text-[10px] font-bold uppercase tracking-widest text-accent">{thought.category_name || 'Uncategorized'}</span>
                         <span className="text-[10px] text-ink-muted">{formatDate(thought.created_at)}</span>
                       </div>
-                      <h4 className="font-bold text-ink line-clamp-1">{thought.title || 'Untitled Thought'}</h4>
-                      <p className="text-sm text-ink-muted line-clamp-3 leading-relaxed">{thought.text}</p>
+                      <p className="text-sm text-ink-muted line-clamp-3 leading-relaxed font-serif italic">"{thought.text}"</p>
                     </Card>
                   ))}
                   {thoughts.length === 0 && (
-                    <div className="col-span-full py-12 text-center border-2 border-dashed border-border rounded-3xl">
-                      <p className="text-ink-muted">Your timeline is empty. Start by capturing your first thought.</p>
+                    <div className="col-span-full py-12 text-center border-2 border-dashed border-border rounded-3xl bg-surface/30">
+                      <p className="text-ink-muted font-serif italic">"Start with one thought. The rest will follow."</p>
                     </div>
                   )}
                 </div>
               </section>
 
-              {/* Core Idea Section */}
-              <section className="max-w-6xl mx-auto px-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                  <div className="space-y-8">
-                    <h3 className="text-4xl font-black text-ink">Why Thought Shaastra?</h3>
-                    <div className="space-y-6">
-                      <div className="flex gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-red-900/20 flex items-center justify-center text-red-400 shrink-0">
-                          <X size={24} />
-                        </div>
-                        <div>
-                          <h4 className="text-xl font-bold text-ink">Thoughts are scattered</h4>
-                          <p className="text-ink-muted">Valuable insights are lost in the noise of daily life.</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-red-900/20 flex items-center justify-center text-red-400 shrink-0">
-                          <X size={24} />
-                        </div>
-                        <div>
-                          <h4 className="text-xl font-bold text-ink">Insights are forgotten</h4>
-                          <p className="text-ink-muted">Without a system, your best ideas never reach their potential.</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-red-900/20 flex items-center justify-center text-red-400 shrink-0">
-                          <X size={24} />
-                        </div>
-                        <div>
-                          <h4 className="text-xl font-bold text-ink">Ideas don't compound</h4>
-                          <p className="text-ink-muted">True wisdom comes from connecting and evolving your thoughts over time.</p>
-                        </div>
-                      </div>
+              {/* Insights & Wisdom - MOVED TO HOME */}
+              <section className="max-w-6xl mx-auto px-6 space-y-12">
+                <div className="text-center space-y-4">
+                  <h3 className="text-3xl font-black text-ink">Your Wisdom Patterns</h3>
+                  <p className="text-ink-muted">Visualise your thinking journey and progress.</p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <Card className="h-[300px] flex flex-col p-6">
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-ink-muted mb-6">Thought Frequency</h3>
+                    <div className="flex-1">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={activityData}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                          <XAxis 
+                            dataKey="date" 
+                            tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} 
+                            tickFormatter={(val) => format(parseISO(val), 'MMM d')}
+                          />
+                          <YAxis tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-border)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="count" 
+                            stroke="var(--color-accent)" 
+                            strokeWidth={3} 
+                            dot={{ r: 4, fill: 'var(--color-accent)' }}
+                            activeDot={{ r: 6 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
                     </div>
-                  </div>
-                  <Card className="p-12 bg-accent/5 border-accent/20 flex flex-col justify-center text-center space-y-6">
-                    <div className="w-20 h-20 bg-accent rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-accent/40">
-                      <Feather size={40} className="text-bg" />
+                  </Card>
+
+                  <Card className="h-[300px] flex flex-col p-6">
+                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-ink-muted mb-6">Category Distribution</h3>
+                    <div className="flex-1">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={stats}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+                          <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} />
+                          <YAxis tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-border)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                          />
+                          <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                            {stats.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={['#C49B66', '#A67C52', '#8B6944', '#705637', '#55432A'][index % 5]} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
-                    <h4 className="text-3xl font-black text-ink">The Solution</h4>
-                    <p className="text-xl text-ink-muted font-serif italic">
-                      Thought Shaastra turns thinking into a structured system. It is your personal knowledge and reflection OS.
-                    </p>
                   </Card>
                 </div>
               </section>
 
-              {/* How It Works Section */}
-              <section id="how-it-works" className="max-w-6xl mx-auto px-6 space-y-16">
+              {/* Progressive Reveal: Layers of Thought */}
+              {thoughts.length >= 3 && (
+                <motion.section 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="max-w-6xl mx-auto px-6 space-y-16"
+                >
+                  <div className="text-center space-y-4">
+                    <div className="inline-block px-4 py-1 bg-accent/10 border border-accent/20 rounded-full text-accent text-[10px] font-bold uppercase tracking-[0.3em]">System Unlocked</div>
+                    <h3 className="text-4xl font-black text-ink">You’ve started building your thinking system.</h3>
+                    <p className="text-ink-muted text-lg">The Layers of Thought are now revealing themselves to you.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {/* CAPTURE */}
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-500">
+                          <Mic size={16} />
+                        </div>
+                        <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Capture</h4>
+                      </div>
+                      <div className="space-y-4">
+                        <button onClick={() => changeTab('timeline')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                          <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Timeline</h5>
+                          <p className="text-xs text-ink-muted mt-1">Quick thoughts and daily reflections.</p>
+                        </button>
+                        <button onClick={() => changeTab('questions')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                          <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Questions</h5>
+                          <p className="text-xs text-ink-muted mt-1">Structured thinking prompts to spark curiosity.</p>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* DEVELOP */}
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-500">
+                          <BookOpen size={16} />
+                        </div>
+                        <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Develop</h4>
+                      </div>
+                      <div className="space-y-4">
+                        <button onClick={() => changeTab('documents')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                          <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Documents</h5>
+                          <p className="text-xs text-ink-muted mt-1">Long-form thinking and detailed research.</p>
+                        </button>
+                        <button onClick={() => changeTab('graph')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                          <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Connections</h5>
+                          <p className="text-xs text-ink-muted mt-1">Visualise how your ideas link together.</p>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* REFLECT */}
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-purple-500">
+                          <Lock size={16} />
+                        </div>
+                        <h4 className="text-sm font-black uppercase tracking-[0.3em] text-ink-muted">Reflect</h4>
+                      </div>
+                      <div className="space-y-4">
+                        <button onClick={() => changeTab('capsule')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                          <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Time Capsules</h5>
+                          <p className="text-xs text-ink-muted mt-1">Lock thoughts for your future self to unlock.</p>
+                        </button>
+                        <button onClick={() => changeTab('insights')} className="w-full p-6 bg-surface border border-border rounded-3xl text-left hover:border-accent transition-all group">
+                          <h5 className="font-bold text-ink group-hover:text-accent transition-colors">Insights</h5>
+                          <p className="text-xs text-ink-muted mt-1">Patterns and progress in your thinking.</p>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </motion.section>
+              )}
+
+              {/* Thinking Flow Section */}
+              <section className="max-w-6xl mx-auto px-6 space-y-16">
                 <div className="text-center space-y-4">
                   <h3 className="text-4xl font-black text-ink">The Thinking Flow</h3>
                   <p className="text-ink-muted text-lg">From a spark of an idea to a lifetime of wisdom.</p>
@@ -1513,7 +1662,6 @@ export default function App() {
                           <div className="inline-block px-3 py-1 rounded-full bg-accent/10 border border-accent/20">
                             <p className="text-[10px] text-accent font-bold uppercase tracking-widest">{step.term}</p>
                           </div>
-                          <p className="text-[10px] text-ink-muted leading-relaxed">{step.desc}</p>
                         </div>
                       </div>
                     ))}
@@ -1521,38 +1669,42 @@ export default function App() {
                 </div>
               </section>
 
-              {/* Emotional Hook Section */}
-              <section className="bg-surface border-y border-border py-32 px-6">
-                <div className="max-w-4xl mx-auto text-center space-y-16">
+              {/* Why Thought Shaastra? */}
+              <section className="max-w-6xl mx-auto px-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                   <div className="space-y-8">
-                    <h3 className="text-4xl sm:text-6xl font-black text-ink leading-tight">Your thoughts deserve structure.</h3>
-                    <p className="text-ink-muted text-2xl font-serif italic">"Clarity comes from thinking better, not thinking more."</p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    <div className="space-y-4">
-                      <p className="text-accent font-bold text-lg">What you don't revisit, you lose.</p>
-                      <p className="text-ink-muted">Thought Shaastra ensures your best ideas are preserved and evolved.</p>
+                    <h3 className="text-4xl font-black text-ink">Why Thought Shaastra?</h3>
+                    <div className="space-y-6">
+                      <div className="flex gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-red-900/20 flex items-center justify-center text-red-400 shrink-0">
+                          <X size={24} />
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-bold text-ink">Thoughts are scattered</h4>
+                          <p className="text-ink-muted">Valuable insights are lost in the noise of daily life.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-red-900/20 flex items-center justify-center text-red-400 shrink-0">
+                          <X size={24} />
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-bold text-ink">Insights are forgotten</h4>
+                          <p className="text-ink-muted">Without a system, your best ideas never reach their potential.</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-4">
-                      <p className="text-accent font-bold text-lg">A sanctuary for your mind.</p>
-                      <p className="text-ink-muted">A clean, calm space away from the noise of the digital world.</p>
-                    </div>
                   </div>
+                  <Card className="p-12 bg-accent/5 border-accent/20 flex flex-col justify-center text-center space-y-6">
+                    <div className="w-20 h-20 bg-accent rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-accent/40">
+                      <Feather size={40} className="text-bg" />
+                    </div>
+                    <h4 className="text-3xl font-black text-ink">The Solution</h4>
+                    <p className="text-xl text-ink-muted font-serif italic">
+                      Thought Shaastra turns thinking into a structured system.
+                    </p>
+                  </Card>
                 </div>
-              </section>
-
-              {/* Final CTA Section */}
-              <section className="text-center space-y-12 py-20 px-6">
-                <div className="space-y-6">
-                  <h3 className="text-4xl sm:text-6xl font-black text-ink">Begin Your Thinking.</h3>
-                  <p className="text-ink-muted text-xl">This is your Thought Shaastra — your personal system for wisdom.</p>
-                </div>
-                <Button 
-                  onClick={() => setIsWriting(true)} 
-                  className="h-20 px-16 rounded-3xl text-2xl font-black shadow-2xl shadow-accent/20 hover:scale-105 transition-all"
-                >
-                  Enter the System
-                </Button>
               </section>
             </motion.div>
           )}
@@ -1617,96 +1769,75 @@ export default function App() {
               )}
 
               {/* Timeline List */}
-              <div className="space-y-12 pt-8">
-                {(Object.entries(groupedThoughts) as [string, Thought[]][]).map(([monthYear, monthThoughts]) => (
-                  <div key={monthYear} className="relative">
-                    <div className="sticky top-20 z-10 py-4 bg-bg/80 backdrop-blur-sm">
-                      <h2 className="text-sm font-black text-ink-muted uppercase tracking-[0.4em] flex items-center gap-4">
-                        {monthYear}
-                        <div className="h-px flex-1 bg-border" />
-                      </h2>
+              <div className="max-w-4xl mx-auto relative pt-8">
+                <div className="absolute left-4 sm:left-1/2 top-0 bottom-0 w-px bg-border -translate-x-1/2 hidden sm:block" />
+                
+                {Object.entries(groupedThoughts).map(([date, dateThoughts]) => (
+                  <div key={date} className="space-y-8 mb-16 relative">
+                    <div className="sticky top-24 z-10 flex justify-center mb-8">
+                      <div className="px-6 py-2 bg-surface border border-border rounded-full text-xs font-bold uppercase tracking-widest text-accent shadow-sm">
+                        {date}
+                      </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-                      {monthThoughts.map(thought => (
-                        <motion.div key={thought.id} layoutId={`thought-${thought.id}`}>
-                          <Card className="group hover:border-accent transition-all duration-500">
-                            <div className="flex justify-between items-start mb-4">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-1 bg-surface text-accent rounded-lg border border-border">
-                                  {thought.category_name || 'General'}
-                                </span>
-                                <span className="text-[10px] text-ink-muted font-bold uppercase tracking-widest">{formatTime(thought.created_at)}</span>
+
+                    <div className="space-y-12">
+                      {(dateThoughts as any[]).map((item: any, idx: number) => (
+                        <motion.div 
+                          key={item.id}
+                          initial={{ opacity: 0, x: idx % 2 === 0 ? -20 : 20 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          className={cn(
+                            "relative flex flex-col sm:flex-row items-center gap-8",
+                            idx % 2 === 0 ? "sm:flex-row" : "sm:flex-row-reverse"
+                          )}
+                        >
+                          {/* Timeline Dot */}
+                          <div className="absolute left-4 sm:left-1/2 w-4 h-4 bg-accent rounded-full border-4 border-bg -translate-x-1/2 z-10 hidden sm:block" />
+                          
+                          <div className="w-full sm:w-1/2">
+                            <Card 
+                              className={cn(
+                                "p-6 hover:border-accent transition-all cursor-pointer group",
+                                item.is_insight ? "bg-accent/5 border-accent/20" : "bg-surface"
+                              )}
+                              onClick={() => { setEditingThought(item); setIsWriting(true); }}
+                            >
+                              <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center gap-2">
+                                  {item.is_insight ? (
+                                    <Sunrise size={14} className="text-accent" />
+                                  ) : item.unlock_at ? (
+                                    <Lock size={14} className="text-ink-muted" />
+                                  ) : (
+                                    <Edit3 size={14} className="text-ink-muted" />
+                                  )}
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-accent">
+                                    {item.is_insight ? 'Insight' : item.unlock_at ? 'Time Capsule' : 'Thought'}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-ink-muted font-mono">{formatTime(item.created_at)}</span>
                               </div>
-                              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => { setEditingThought(thought); setIsWriting(true); }} className="p-1.5 text-ink-muted hover:text-accent rounded-lg" title="Edit">
-                                  <Edit3 size={14} />
-                                </button>
-                                <button 
-                                  onClick={async () => {
-                                    confirmAction('Convert to Document', 'Convert this thought into a long-form Document?', async () => {
-                                      const res = await fetch('/api/documents', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                          title: thought.title || 'Thought Expansion',
-                                          description: thought.text.substring(0, 100) + '...',
-                                          sections: [{ title: 'Original Thought', content: thought.text }]
-                                        })
-                                      });
-                                      if (res.ok) {
-                                        const data = await res.json();
-                                        if (data && data.id) {
-                                          await fetch(`/api/documents/${data.id}/link/${thought.id}`, { method: 'POST' });
-                                          fetchData();
-                                          changeTab('documents');
-                                          showToast('Converted to document', 'success');
-                                        }
-                                      }
-                                    });
-                                  }} 
-                                  className="p-1.5 text-ink-muted hover:text-accent rounded-lg"
-                                  title="Convert to Document"
-                                >
-                                  <BookOpen size={14} />
-                                </button>
-                                <button 
-                                  onClick={async () => {
-                                    confirmAction('Convert to Principle', 'Convert this thought into a Core Principle?', async () => {
-                                      await fetch('/api/purpose', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ text: thought.text, type: 'text' })
-                                      });
-                                      fetchData();
-                                      changeTab('purpose');
-                                      showToast('Added to Core Principles', 'success');
-                                    });
-                                  }} 
-                                  className="p-1.5 text-ink-muted hover:text-accent rounded-lg"
-                                  title="Convert to Principle"
-                                >
-                                  <Target size={14} />
-                                </button>
-                                <button onClick={() => { navigator.clipboard.writeText(thought.text); showToast('Copied to clipboard', 'success'); }} className="p-1.5 text-ink-muted hover:text-accent rounded-lg" title="Copy">
-                                  <Share2 size={14} />
-                                </button>
-                              </div>
-                            </div>
-                            {thought.title && <h4 className="text-lg font-bold mb-2 text-ink break-words">{thought.title}</h4>}
-                            <p className="text-lg font-serif leading-relaxed text-ink/90 break-words">
-                              {thought.text}
-                            </p>
-                            {thought.type === 'voice' && thought.audio_data && (
-                              <VoicePlayer audioData={thought.audio_data} />
-                            )}
-                            {thought.tags && (
-                              <div className="mt-6 flex flex-wrap gap-2">
-                                {(thought.tags as string).split(',').map(tag => (
-                                  <span key={tag} className="text-[10px] font-bold text-accent/60 uppercase tracking-widest">#{tag.trim()}</span>
+                              
+                              <p className="text-ink leading-relaxed font-serif italic mb-4">
+                                "{item.text}"
+                              </p>
+
+                              {item.expression && (
+                                <div className="mt-4 p-3 bg-bg/50 rounded-xl border border-border/50">
+                                  <p className="text-[10px] font-bold uppercase text-ink-muted mb-1">Expression</p>
+                                  <p className="text-xs text-ink-muted line-clamp-2">{item.expression}</p>
+                                </div>
+                              )}
+
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                {item.tags?.split(',').filter(Boolean).map((tag: string) => (
+                                  <span key={tag} className="text-[10px] px-2 py-0.5 bg-surface border border-border rounded-full text-ink-muted">#{tag}</span>
                                 ))}
                               </div>
-                            )}
-                          </Card>
+                            </Card>
+                          </div>
+                          <div className="hidden sm:block w-1/2" />
                         </motion.div>
                       ))}
                     </div>
@@ -1931,73 +2062,83 @@ export default function App() {
                 <p className="text-ink-muted font-serif italic text-xl">The invisible threads between your ideas</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {discoveredConnections.length > 0 ? (
-                  discoveredConnections.map((conn, idx) => (
-                    <Card key={idx} className="p-6 border-accent/20 hover:border-accent transition-all group relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
-                        <Network size={48} className="text-accent" />
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-accent/10 text-accent rounded-full text-[10px] font-bold uppercase tracking-widest">
-                          <Share2 size={12} /> {conn.type}
+              <div className="space-y-8 max-w-3xl mx-auto">
+                {thoughts.map(thought => {
+                  const linkedInsights = thoughts.filter(t => t.parent_id === thought.id && t.is_insight);
+                  const linkedCapsules = thoughts.filter(t => t.parent_id === thought.id && t.unlock_at);
+                  const childThoughts = thoughts.filter(t => t.parent_id === thought.id && !t.is_insight && !t.unlock_at);
+                  const parentThought = thoughts.find(t => t.id === thought.parent_id);
+
+                  if (!parentThought && linkedInsights.length === 0 && linkedCapsules.length === 0 && childThoughts.length === 0) return null;
+
+                  return (
+                    <Card key={thought.id} className="p-8 space-y-6">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-accent">Main Thought</span>
+                          <span className="text-[10px] text-ink-muted">{formatDate(thought.created_at)}</span>
                         </div>
+                        <p className="text-lg font-bold text-ink leading-tight">{thought.text}</p>
+                      </div>
+
+                      <div className="space-y-4 pt-4 border-t border-border">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-ink-muted">Connected Thinking</h4>
                         
                         <div className="space-y-3">
-                          <div className="p-3 bg-surface rounded-xl border border-border">
-                            <p className="text-xs text-ink line-clamp-2 italic">"{conn.thoughtA.text}"</p>
-                          </div>
-                          <div className="flex justify-center">
-                            <div className="w-px h-4 bg-border relative">
-                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-accent" />
+                          {parentThought && (
+                            <div className="flex items-center gap-3 p-3 bg-surface rounded-xl border border-border">
+                              <ArrowRight size={14} className="rotate-180 text-accent" />
+                              <div>
+                                <p className="text-[10px] font-bold uppercase text-accent">Came from</p>
+                                <p className="text-sm text-ink line-clamp-1 italic">"{parentThought.text}"</p>
+                              </div>
                             </div>
-                          </div>
-                          <div className="p-3 bg-surface rounded-xl border border-border">
-                            <p className="text-xs text-ink line-clamp-2 italic">"{conn.thoughtB.text}"</p>
-                          </div>
-                        </div>
+                          )}
 
-                        <div className="pt-4 border-t border-border">
-                          <p className="text-[10px] font-bold text-ink-muted uppercase tracking-widest">{conn.reason}</p>
+                          {linkedInsights.map(insight => (
+                            <div key={insight.id} className="flex items-center gap-3 p-3 bg-accent/5 rounded-xl border border-accent/20">
+                              <Sunrise size={14} className="text-accent" />
+                              <div>
+                                <p className="text-[10px] font-bold uppercase text-accent">Derived Insight</p>
+                                <p className="text-sm text-ink line-clamp-1">"{insight.insight || insight.text}"</p>
+                              </div>
+                            </div>
+                          ))}
+
+                          {linkedCapsules.map(capsule => (
+                            <div key={capsule.id} className="flex items-center gap-3 p-3 bg-surface rounded-xl border border-border">
+                              <Lock size={14} className="text-ink-muted" />
+                              <div>
+                                <p className="text-[10px] font-bold uppercase text-ink-muted">Stored for future</p>
+                                <p className="text-sm text-ink line-clamp-1">Unlocks {formatDate(capsule.unlock_at!)}</p>
+                              </div>
+                            </div>
+                          ))}
+
+                          {childThoughts.map(child => (
+                            <div key={child.id} className="flex items-center gap-3 p-3 bg-surface rounded-xl border border-border">
+                              <ArrowRight size={14} className="text-accent" />
+                              <div>
+                                <p className="text-[10px] font-bold uppercase text-accent">Leads to</p>
+                                <p className="text-sm text-ink line-clamp-1 italic">"{child.text}"</p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     </Card>
-                  ))
-                ) : (
-                  <div className="col-span-full py-24 text-center space-y-4">
+                  );
+                })}
+
+                {thoughts.filter(t => t.parent_id || thoughts.some(p => p.parent_id === t.id)).length === 0 && (
+                  <div className="py-24 text-center space-y-4">
                     <div className="w-20 h-20 bg-surface rounded-full flex items-center justify-center text-border mx-auto border-2 border-dashed border-border">
-                      <Network size={32} />
+                      <Share2 size={32} />
                     </div>
-                    <h3 className="text-xl font-bold text-ink">No connections discovered yet</h3>
-                    <p className="text-ink-muted max-w-md mx-auto">Continue capturing your thoughts. As your sanctuary grows, the threads between your ideas will reveal themselves.</p>
+                    <h3 className="text-xl font-bold text-ink">No connections yet</h3>
+                    <p className="text-ink-muted">Start connecting your thoughts to see the threads of your mind.</p>
                   </div>
                 )}
-              </div>
-
-              {/* Manual Connections */}
-              <div className="space-y-8">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-2xl font-black text-ink">Explicit Links</h3>
-                  <p className="text-xs text-ink-muted font-bold uppercase tracking-widest">Thoughts you've manually connected</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {thoughts.filter(t => t.parent_id).map(t => {
-                    const parent = thoughts.find(p => p.id === t.parent_id);
-                    return (
-                      <Card key={t.id} className="p-6 flex items-center gap-4 hover:bg-surface/50 transition-colors cursor-pointer" onClick={() => { setEditingThought(t); setIsWriting(true); }}>
-                        <div className="w-10 h-10 bg-accent/10 rounded-xl flex items-center justify-center text-accent shrink-0">
-                          <LinkIcon size={20} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-accent uppercase tracking-widest mb-1">Child of: {parent?.title || parent?.text.substring(0, 20)}...</p>
-                          <h4 className="font-bold text-ink truncate">{t.title || t.text.substring(0, 40)}...</h4>
-                        </div>
-                        <ChevronRight size={16} className="text-border" />
-                      </Card>
-                    );
-                  })}
-                </div>
               </div>
             </motion.div>
           )}
@@ -2038,57 +2179,6 @@ export default function App() {
                 </div>
               </Card>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card className="h-[400px] flex flex-col p-6">
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-ink-muted mb-6">Thought Frequency</h3>
-                  <div className="flex-1">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={activityData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                        <XAxis 
-                          dataKey="date" 
-                          tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} 
-                          tickFormatter={(val) => format(parseISO(val), 'MMM d')}
-                        />
-                        <YAxis tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-border)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="count" 
-                          stroke="var(--color-accent)" 
-                          strokeWidth={3} 
-                          dot={{ r: 4, fill: 'var(--color-accent)' }}
-                          activeDot={{ r: 6 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-
-                <Card className="h-[400px] flex flex-col p-6">
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-ink-muted mb-6">Category Distribution</h3>
-                  <div className="flex-1">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={stats}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} />
-                        <YAxis tick={{ fontSize: 10, fill: 'var(--color-ink-muted)' }} />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-border)', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                        />
-                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                          {stats.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={['#C49B66', '#A67C52', '#8B6944', '#705637', '#55432A'][index % 5]} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </Card>
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="text-center p-8">
                   <div className="w-12 h-12 bg-surface rounded-2xl flex items-center justify-center text-accent border border-border mx-auto mb-4">
@@ -2112,6 +2202,39 @@ export default function App() {
                   <p className="text-xs text-ink-muted font-bold uppercase tracking-widest">Core Principles</p>
                 </Card>
               </div>
+
+              {/* Extracted Insights Section */}
+              <section className="space-y-8">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-black text-ink">Extracted Insights</h3>
+                  <p className="text-xs text-ink-muted font-bold uppercase tracking-widest">Wisdom from your guided flows</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {thoughts.filter(t => t.is_insight).map(insight => (
+                    <Card key={insight.id} className="p-6 border-accent/30 bg-accent/5 space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2 text-accent">
+                          <Sunrise size={16} />
+                          <span className="text-[10px] font-bold uppercase tracking-widest">Insight</span>
+                        </div>
+                        <span className="text-[10px] text-ink-muted">{formatDate(insight.created_at)}</span>
+                      </div>
+                      <p className="text-lg font-bold text-ink leading-tight">"{insight.insight || insight.text}"</p>
+                      {insight.clarity && (
+                        <div className="pt-4 border-t border-border/50">
+                          <p className="text-[10px] font-bold uppercase text-ink-muted mb-1">Clarity / Next Steps</p>
+                          <p className="text-sm text-ink-muted italic">{insight.clarity}</p>
+                        </div>
+                      )}
+                    </Card>
+                  ))}
+                  {thoughts.filter(t => t.is_insight).length === 0 && (
+                    <div className="col-span-full py-12 text-center border-2 border-dashed border-border rounded-3xl bg-surface/30">
+                      <p className="text-ink-muted font-serif italic">"No insights extracted yet. Complete a guided flow to find wisdom."</p>
+                    </div>
+                  )}
+                </div>
+              </section>
             </motion.div>
           )}
 

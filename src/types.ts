@@ -24,6 +24,12 @@ export interface Thought {
   user_id: number | null;
   title: string | null;
   text: string;
+  expression: string | null;
+  meaning: string | null;
+  clarity: string | null;
+  is_insight: number;
+  reasoning: string | null;
+  insight: string | null;
   category_id: number | null;
   category_name: string | null;
   tags: string | null;
