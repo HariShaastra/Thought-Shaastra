@@ -442,6 +442,7 @@ const ThoughtEditor = ({
   editingThought, 
   categories, 
   thoughts, 
+  questions,
   documents, 
   onSave, 
   isRecording, 
@@ -621,8 +622,49 @@ const ThoughtEditor = ({
         </select>
       </div>
 
+      {editingThought && (
+        <div className="pt-8 border-t border-border space-y-6">
+          <h4 className="text-xs font-black uppercase tracking-widest text-ink-muted">Connected to your thinking</h4>
+          <div className="space-y-4">
+            {/* Related Thoughts */}
+            {thoughts
+              .filter(t => t.id !== editingThought.id && (t.category_id === editingThought.category_id || (t.tags && editingThought.tags && t.tags.split(',').some(tag => editingThought.tags?.split(',').includes(tag)))))
+              .slice(0, 3)
+              .map(t => (
+                <div key={t.id} className="p-4 bg-surface border border-border rounded-xl flex items-center gap-3">
+                  <Feather size={14} className="text-accent" />
+                  <p className="text-sm text-ink line-clamp-1 italic">"{t.text}"</p>
+                </div>
+              ))
+            }
+            {/* Related Questions */}
+            {questions
+              .filter(q => editingThought.text?.toLowerCase().includes(q.text.toLowerCase().split(' ')[0]))
+              .slice(0, 2)
+              .map(q => (
+                <div key={q.id} className="p-4 bg-accent/5 border border-accent/20 rounded-xl flex items-center gap-3">
+                  <HelpCircle size={14} className="text-accent" />
+                  <p className="text-sm text-ink line-clamp-1">"{q.text}"</p>
+                </div>
+              ))
+            }
+            {/* Past Versions / Similar Entries */}
+            {thoughts
+              .filter(t => t.id !== editingThought.id && t.text.substring(0, 20) === editingThought.text.substring(0, 20))
+              .slice(0, 2)
+              .map(t => (
+                <div key={t.id} className="p-4 bg-surface border border-border rounded-xl flex items-center gap-3">
+                  <History size={14} className="text-ink-muted" />
+                  <p className="text-sm text-ink-muted line-clamp-1">Similar entry from {formatDate(t.created_at)}</p>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
+
       <div className="pt-6">
-        <Button type="submit" className="w-full py-4 text-lg">Save Thought</Button>
+        <Button type="submit" className="w-full py-4 text-lg">Capture it</Button>
       </div>
     </form>
   );
@@ -661,6 +703,51 @@ export default function App() {
   const [isGuidedFlowActive, setIsGuidedFlowActive] = useState(false);
   const [guidedFlowStep, setGuidedFlowStep] = useState(0);
   const [currentThoughtData, setCurrentThoughtData] = useState<any>(null);
+
+  const [isReactionActive, setIsReactionActive] = useState(false);
+  const [currentReactions, setCurrentReactions] = useState<string[]>([]);
+
+  const generateReactions = (newThought: any) => {
+    const reactions: string[] = [];
+    
+    // 1. Pattern Detection
+    const similarByCategory = thoughts.filter(t => t.category_id === newThought.category_id && t.id !== newThought.id);
+    if (similarByCategory.length > 3) {
+      reactions.push("This theme shows up often.");
+    } else if (similarByCategory.length > 0) {
+      reactions.push("You’ve felt this before.");
+    }
+
+    // 2. Time Awareness
+    if (similarByCategory.length > 0) {
+      const lastSimilar = similarByCategory[0];
+      const diffDays = Math.floor((new Date().getTime() - new Date(lastSimilar.created_at).getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays > 0) {
+        reactions.push(`You wrote something similar ${diffDays} days ago.`);
+      }
+    }
+
+    // 3. Connection Surfacing
+    const overlappingTags = thoughts.find(t => 
+      t.id !== newThought.id && 
+      t.tags && newThought.tags && 
+      t.tags.split(',').some((tag: string) => newThought.tags.split(',').includes(tag))
+    );
+    if (overlappingTags) {
+      reactions.push("This connects to your previous thinking.");
+    }
+
+    // 4. Reflection Prompt
+    const prompts = [
+      "What usually causes this?",
+      "Has anything changed this time?",
+      "How does this shape your day?",
+      "Is there a deeper pattern here?"
+    ];
+    reactions.push(prompts[Math.floor(Math.random() * prompts.length)]);
+
+    return reactions.slice(0, 3);
+  };
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     const id = Date.now();
@@ -926,6 +1013,13 @@ export default function App() {
                 method: 'POST'
               });
             }
+            
+            // Trigger Reaction Engine
+            const reactions = generateReactions({...payload, id: savedThought.id});
+            if (reactions.length > 0) {
+              setCurrentReactions(reactions);
+              setIsReactionActive(true);
+            }
           }
           fetchData();
           setIsWriting(false);
@@ -946,6 +1040,13 @@ export default function App() {
         if (index !== -1) local[index] = newThought;
       } else {
         local.unshift(newThought);
+        
+        // Trigger Reaction Engine for guest
+        const reactions = generateReactions(newThought);
+        if (reactions.length > 0) {
+          setCurrentReactions(reactions);
+          setIsReactionActive(true);
+        }
       }
       
       localStorage.setItem('guest_thoughts', JSON.stringify(local));
@@ -1033,9 +1134,9 @@ export default function App() {
       if (t.unlock_at && isAfter(parseISO(t.unlock_at), new Date())) {
         return;
       }
-      const monthYear = format(parseISO(t.created_at), 'MMMM yyyy');
-      if (!groups[monthYear]) groups[monthYear] = [];
-      groups[monthYear].push(t);
+      const dateKey = formatDate(t.created_at);
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push(t);
     });
     return groups;
   }, [filteredThoughts]);
@@ -1122,6 +1223,62 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-bg text-ink transition-colors duration-300">
+      {/* Reaction Engine Overlay */}
+      <AnimatePresence>
+        {isReactionActive && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] bg-bg/95 backdrop-blur-xl flex items-center justify-center p-6"
+          >
+            <div className="max-w-md w-full space-y-12">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center text-accent mx-auto border border-accent/20">
+                  <Sunrise size={32} />
+                </div>
+                <h2 className="text-3xl font-black text-ink">That’s worth remembering.</h2>
+                <p className="text-ink-muted font-serif italic">The system noticed something...</p>
+              </div>
+
+              <div className="space-y-4">
+                {currentReactions.map((reaction, idx) => (
+                  <motion.div 
+                    key={idx}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.2 }}
+                    className="p-6 bg-surface border border-border rounded-2xl shadow-lg"
+                  >
+                    <p className="text-lg font-bold text-ink leading-tight">{reaction}</p>
+                  </motion.div>
+                ))}
+                
+                {currentReactions.length === 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-6 bg-surface border border-border rounded-2xl shadow-lg text-center"
+                  >
+                    <p className="text-lg font-bold text-ink leading-tight">Too early to tell. Keep going.</p>
+                  </motion.div>
+                )}
+              </div>
+
+              <Button 
+                onClick={() => {
+                  setIsReactionActive(false);
+                  setCurrentReactions([]);
+                }}
+                className="w-full h-14 text-lg font-black"
+              >
+                Continue →
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Guided Flow Overlay */}
       <AnimatePresence>
         {isGuidedFlowActive && (
@@ -1417,7 +1574,7 @@ export default function App() {
                   <div className="relative group">
                     <TextArea 
                       id="home-thought-input"
-                      placeholder="Start with one thought. The rest will follow." 
+                      placeholder="What's on your mind?" 
                       className="min-h-[150px] text-xl p-8 rounded-[2rem] border-2 border-border focus:border-accent shadow-xl transition-all bg-surface/50 backdrop-blur-sm"
                     />
                     <div className="absolute bottom-4 right-4">
@@ -1433,29 +1590,44 @@ export default function App() {
                         }}
                         className="h-14 px-8 rounded-2xl text-lg font-black shadow-lg shadow-accent/20"
                       >
-                        Write Thought →
+                        Capture it →
                       </Button>
                     </div>
                   </div>
                 </div>
 
-                {/* Simple Intro */}
-                <div className="max-w-2xl mx-auto space-y-6 bg-accent/5 p-8 rounded-[2rem] border border-accent/10">
-                  <h3 className="text-2xl font-black text-ink">What is Thought Shaastra?</h3>
-                  <p className="text-lg text-ink-muted leading-relaxed">
-                    It's a simple space to <span className="text-accent font-bold">clear your mind</span>. 
-                    No complex tools, just you and your thoughts.
-                  </p>
-                  <div className="flex items-center justify-center gap-4 text-sm font-bold text-accent uppercase tracking-widest">
-                    <span>Capture</span>
-                    <div className="w-1 h-1 rounded-full bg-accent/30" />
-                    <span>Understand</span>
-                    <div className="w-1 h-1 rounded-full bg-accent/30" />
-                    <span>Grow</span>
+                {/* Simple Intro - REDESIGNED FOR EXTREME SIMPLICITY */}
+                <div className="max-w-2xl mx-auto space-y-8 bg-accent/5 p-10 rounded-[2.5rem] border border-accent/10 text-center">
+                  <div className="space-y-4">
+                    <h3 className="text-3xl font-black text-ink">What is Thought Shaastra?</h3>
+                    <p className="text-xl text-ink font-medium">
+                      It is a <span className="bg-accent/20 px-2 py-1 rounded-lg">safe space</span> for your brain. 
+                    </p>
                   </div>
-                  <p className="text-xs text-ink-muted italic">
-                    Tip: Write <span className="font-bold text-ink">3 thoughts</span> to unlock deeper layers of your mind.
-                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 py-4">
+                    <div className="space-y-2">
+                      <div className="text-2xl">✍️</div>
+                      <p className="text-sm font-bold text-ink uppercase tracking-widest">1. Write</p>
+                      <p className="text-xs text-ink-muted">Write any thought you have.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-2xl">🧠</div>
+                      <p className="text-sm font-bold text-ink uppercase tracking-widest">2. Understand</p>
+                      <p className="text-xs text-ink-muted">The app finds patterns for you.</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-2xl">🌱</div>
+                      <p className="text-sm font-bold text-ink uppercase tracking-widest">3. Grow</p>
+                      <p className="text-xs text-ink-muted">See how your mind works.</p>
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-accent/10">
+                    <p className="text-sm text-ink font-bold">
+                      🎁 <span className="text-accent">Special Gift:</span> Write <span className="underline decoration-accent decoration-2 underline-offset-4">3 thoughts</span> to unlock the full power of the app!
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
@@ -1488,7 +1660,7 @@ export default function App() {
                   ))}
                   {thoughts.length === 0 && (
                     <div className="col-span-full py-12 text-center border-2 border-dashed border-border rounded-3xl bg-surface/30">
-                      <p className="text-ink-muted font-serif italic">"Start with one thought. The rest will follow."</p>
+                      <p className="text-ink-muted font-serif italic">"Your mind is quiet. Capture a thought to begin."</p>
                     </div>
                   )}
                 </div>
@@ -2135,8 +2307,8 @@ export default function App() {
                     <div className="w-20 h-20 bg-surface rounded-full flex items-center justify-center text-border mx-auto border-2 border-dashed border-border">
                       <Share2 size={32} />
                     </div>
-                    <h3 className="text-xl font-bold text-ink">No connections yet</h3>
-                    <p className="text-ink-muted">Start connecting your thoughts to see the threads of your mind.</p>
+                    <h3 className="text-xl font-bold text-ink">Your thoughts will start connecting here.</h3>
+                    <p className="text-ink-muted">Keep capturing your mind to see the patterns emerge.</p>
                   </div>
                 )}
               </div>
@@ -2161,7 +2333,7 @@ export default function App() {
                 
                 <div className="max-w-md mx-auto space-y-4">
                   <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-ink-muted">
-                    <span>{wisdomScore} Points</span>
+                    <span>{wisdomScore} Awareness</span>
                     <span>Next Level: {
                       wisdomScore < 50 ? '50' : 
                       wisdomScore < 150 ? '150' : 
@@ -2230,7 +2402,7 @@ export default function App() {
                   ))}
                   {thoughts.filter(t => t.is_insight).length === 0 && (
                     <div className="col-span-full py-12 text-center border-2 border-dashed border-border rounded-3xl bg-surface/30">
-                      <p className="text-ink-muted font-serif italic">"No insights extracted yet. Complete a guided flow to find wisdom."</p>
+                      <p className="text-ink-muted font-serif italic">"Wisdom takes time. Keep capturing your thoughts to see the patterns."</p>
                     </div>
                   )}
                 </div>
@@ -2687,6 +2859,7 @@ export default function App() {
           editingThought={editingThought}
           categories={categories}
           thoughts={thoughts}
+          questions={questions}
           documents={documents}
           onSave={handleSaveThought}
           isRecording={isRecording}
