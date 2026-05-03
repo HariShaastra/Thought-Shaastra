@@ -155,7 +155,97 @@ const useVoiceRecorder = (showToast: (msg: string, type: 'success' | 'error' | '
 
 // --- Components ---
 
-// --- Components ---
+const Hansa = ({ message, isVisible, onDismiss }: { message: string, isVisible: boolean, onDismiss: () => void }) => {
+  return (
+    <AnimatePresence>
+      {isVisible && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 20 }}
+          className="fixed bottom-6 right-6 z-[200] flex flex-col items-end gap-3 pointer-events-none"
+        >
+          {/* Speech Bubble */}
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="bg-surface border-2 border-accent/20 p-5 rounded-[2.5rem] shadow-2xl max-w-[280px] pointer-events-auto relative mb-2"
+          >
+            <p className="text-sm font-medium text-ink leading-relaxed pr-6">{message}</p>
+            <button 
+              onClick={onDismiss}
+              className="absolute top-4 right-4 text-ink-muted hover:text-ink transition-colors"
+            >
+              <X size={14} />
+            </button>
+            {/* Pointer */}
+            <div className="absolute -bottom-2 right-12 w-4 h-4 bg-surface border-r-2 border-b-2 border-accent/20 rotate-45" />
+          </motion.div>
+
+          {/* Animated Mascot - Abstract Hansa (Swan) */}
+          <motion.div 
+            className="w-24 h-24 pointer-events-auto"
+            animate={{ 
+              y: [0, -12, 0],
+              rotate: [0, -3, 3, 0],
+              scale: [1, 1.05, 1]
+            }}
+            transition={{ 
+              duration: 7, 
+              repeat: Infinity, 
+              ease: "easeInOut" 
+            }}
+          >
+            <svg viewBox="0 0 100 100" className="w-full h-full filter drop-shadow-[0_0_12px_rgba(196,155,102,0.4)]">
+              <defs>
+                <linearGradient id="hansaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.5" />
+                  <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.1" />
+                </linearGradient>
+              </defs>
+              {/* Outer Energy Field */}
+              <motion.circle 
+                cx="50" cy="50" r="48" 
+                fill="var(--color-accent)" 
+                fillOpacity="0.03"
+                animate={{ scale: [1, 1.2, 1], opacity: [0.03, 0.06, 0.03] }}
+                transition={{ duration: 5, repeat: Infinity }}
+              />
+              {/* Refined Swan Path */}
+              <motion.path 
+                d="M25 75 C35 30 55 40 65 30 Q75 20 85 30 T85 55 Q75 85 25 75 Z" 
+                fill="url(#hansaGrad)"
+                stroke="var(--color-accent)"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 3 }}
+              />
+              {/* Wisdom Eye */}
+              <motion.circle 
+                cx="70" cy="30" r="1.5" 
+                fill="var(--color-accent)"
+                animate={{ opacity: [0.3, 1, 0.3] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+              {/* Mirror Ripples */}
+              <motion.path 
+                d="M10 85 Q50 80 90 85" 
+                stroke="var(--color-accent)" 
+                strokeWidth="0.5" 
+                strokeOpacity="0.2"
+                fill="none"
+                animate={{ d: ["M10 85 Q50 80 90 85", "M10 85 Q50 90 90 85", "M10 85 Q50 80 90 85"] }}
+                transition={{ duration: 4, repeat: Infinity }}
+              />
+            </svg>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
 
 const Toast = ({ message, type, onClose }: { message: string, type: 'success' | 'error' | 'info', onClose: () => void }) => (
   <motion.div 
@@ -707,6 +797,42 @@ export default function App() {
   const [isReactionActive, setIsReactionActive] = useState(false);
   const [currentReactions, setCurrentReactions] = useState<string[]>([]);
 
+  const streak = useMemo(() => {
+    if (thoughts.length === 0) return 0;
+    const dates = [...new Set(thoughts.map(t => format(parseISO(t.created_at), 'yyyy-MM-dd')))].sort().reverse() as string[];
+    let currentStreak = 0;
+    let today = new Date();
+    for (let i = 0; i < dates.length; i++) {
+      const d = new Date(dates[i]);
+      const diff = Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+      if (diff === currentStreak || diff === currentStreak + 1) currentStreak++;
+      else break;
+    }
+    return currentStreak;
+  }, [thoughts]);
+
+  const wisdomScore = useMemo(() => {
+    return (thoughts.length * 1) + (questions.length * 2) + (purposes.length * 5) + (documents.length * 10);
+  }, [thoughts, questions, purposes, documents]);
+
+  const wisdomLevel = useMemo(() => {
+    if (wisdomScore < 50) return { title: 'Sadhaka', desc: 'The Seeker', icon: '🌱' };
+    if (wisdomScore < 150) return { title: 'Jigyasu', desc: 'The Curious', icon: '✨' };
+    if (wisdomScore < 300) return { title: 'Vicharak', desc: 'The Thinker', icon: '🌀' };
+    if (wisdomScore < 600) return { title: 'Darshanik', desc: 'The Philosopher', icon: '🕯️' };
+    return { title: 'Rishi', desc: 'The Sage', icon: '🦢' };
+  }, [wisdomScore]);
+
+  const [mascotMessage, setMascotMessage] = useState<string>('');
+  const [isMascotVisible, setIsMascotVisible] = useState(false);
+
+  const triggerHansa = (msg: string, delay = 1000) => {
+    setTimeout(() => {
+      setMascotMessage(msg);
+      setIsMascotVisible(true);
+    }, delay);
+  };
+
   const generateReactions = (newThought: any) => {
     const reactions: string[] = [];
     
@@ -744,7 +870,7 @@ export default function App() {
       "How does this shape your day?",
       "Is there a deeper pattern here?"
     ];
-    reactions.push(prompts[Math.floor(Math.random() * prompts.length)]);
+    reactions.push(prompts[newThought.text.length % prompts.length]);
 
     return reactions.slice(0, 3);
   };
@@ -767,19 +893,24 @@ export default function App() {
 
   const { isRecording, audioBlob, recordingTime, startRecording, stopRecording, resetRecording, blobToBase64 } = useVoiceRecorder(showToast);
 
-  const wisdomScore = useMemo(() => {
-    return (thoughts.length * 1) + (questions.length * 2) + (purposes.length * 5) + (documents.length * 10);
-  }, [thoughts, questions, purposes, documents]);
-
-  const wisdomLevel = useMemo(() => {
-    if (wisdomScore < 50) return { title: 'Sadhaka', desc: 'The Seeker' };
-    if (wisdomScore < 150) return { title: 'Jigyasu', desc: 'The Curious' };
-    if (wisdomScore < 300) return { title: 'Vicharak', desc: 'The Thinker' };
-    if (wisdomScore < 600) return { title: 'Darshanik', desc: 'The Philosopher' };
-    return { title: 'Rishi', desc: 'The Sage' };
-  }, [wisdomScore]);
-
-  // Notification System
+  // Mascot Guidance Logic
+  useEffect(() => {
+    const lastMessage = localStorage.getItem('last_hansa_msg');
+    
+    if (thoughts.length === 0 && activeTab === 'home' && lastMessage !== 'welcome') {
+      triggerHansa("I am Hansa. I will help you notice the patterns in your mind. Start by writing whatever is present right now.");
+      localStorage.setItem('last_hansa_msg', 'welcome');
+    } else if (thoughts.length === 3 && lastMessage !== 'unlocked') {
+      triggerHansa("Wonderful. You've captured 3 thoughts. Deep layers of your mind are now revealing themselves below.");
+      localStorage.setItem('last_hansa_msg', 'unlocked');
+    } else if (streak >= 5 && lastMessage !== 'streak5') {
+      triggerHansa("5 days of awareness. Your mind is becoming a clear mirror. Keep this rhythm.");
+      localStorage.setItem('last_hansa_msg', 'streak5');
+    } else if (activeTab === 'insights' && lastMessage !== 'insights_visit') {
+      triggerHansa("Here you see the architecture of your awareness. The scores are just markers; the patterns are the real gift.");
+      localStorage.setItem('last_hansa_msg', 'insights_visit');
+    }
+  }, [thoughts.length, activeTab, streak]);
   useEffect(() => {
     if (!("Notification" in window)) return;
 
@@ -1141,20 +1272,6 @@ export default function App() {
     return groups;
   }, [filteredThoughts]);
 
-  const streak = useMemo(() => {
-    if (thoughts.length === 0) return 0;
-    const dates = [...new Set(thoughts.map(t => format(parseISO(t.created_at), 'yyyy-MM-dd')))].sort().reverse() as string[];
-    let currentStreak = 0;
-    let today = new Date();
-    for (let i = 0; i < dates.length; i++) {
-      const d = new Date(dates[i]);
-      const diff = Math.floor((today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-      if (diff === currentStreak || diff === currentStreak + 1) currentStreak++;
-      else break;
-    }
-    return currentStreak;
-  }, [thoughts]);
-
   const discoveredConnections = useMemo(() => {
     if (thoughts.length < 2) return [];
     
@@ -1223,6 +1340,13 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-bg text-ink transition-colors duration-300">
+      {/* Hansa Mascot */}
+      <Hansa 
+        message={mascotMessage} 
+        isVisible={isMascotVisible} 
+        onDismiss={() => setIsMascotVisible(false)} 
+      />
+
       {/* Reaction Engine Overlay */}
       <AnimatePresence>
         {isReactionActive && (
@@ -2374,6 +2498,40 @@ export default function App() {
                   <p className="text-xs text-ink-muted font-bold uppercase tracking-widest">Core Principles</p>
                 </Card>
               </div>
+
+              {/* Path of Awareness (Achievements) */}
+              <section className="space-y-8">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-2xl font-black text-ink">The Path of Awareness</h3>
+                  <p className="text-xs text-ink-muted font-bold uppercase tracking-widest">Your growth journey</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[
+                    { id: 'seeker', title: 'The Seeker', desc: 'Capture your first thought', condition: thoughts.length >= 1, icon: '🌱' },
+                    { id: 'observer', title: 'The Observer', desc: 'Reach 3 thoughts to unlock layers', condition: thoughts.length >= 3, icon: '✨' },
+                    { id: 'thinker', title: 'The Thinker', desc: 'Maintain a 3-day thinking streak', condition: streak >= 3, icon: '🌀' },
+                    { id: 'weaver', title: 'The Weaver', desc: 'Create 5 connections between thoughts', condition: thoughts.filter(t => t.parent_id).length >= 5, icon: '🕸️' },
+                    { id: 'architect', title: 'The Architect', desc: 'Start a long-form document', condition: documents.length >= 1, icon: '🏰' },
+                    { id: 'sage', title: 'The Sage', desc: 'Accumulate 500 Awareness points', condition: wisdomScore >= 500, icon: '🦢' }
+                  ].map(milestone => (
+                    <Card key={milestone.id} className={cn(
+                      "p-6 flex items-start gap-4 transition-all border-2",
+                      milestone.condition ? "border-accent/30 bg-accent/5 opacity-100" : "border-border bg-surface opacity-50 grayscale"
+                    )}>
+                      <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center text-2xl shadow-sm">
+                        {milestone.icon}
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-black text-ink">{milestone.title}</h4>
+                          {milestone.condition && <CheckCircle2 size={14} className="text-accent" />}
+                        </div>
+                        <p className="text-xs text-ink-muted leading-relaxed">{milestone.desc}</p>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </section>
 
               {/* Extracted Insights Section */}
               <section className="space-y-8">
